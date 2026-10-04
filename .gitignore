@@ -1,0 +1,68 @@
+# Dependencies & Build
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor & OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
+~$*
+*.code-workspace
+
+# Antigravity AI Agent configurations
+.agents/
+
+# Backend & Database Reference Repositories (Not part of Frontend)
+Cinema_api/
+Cinema_PostgreSQL_Reference/
+*.zip
+*.xlsx
+*.xls
+api_excel_*
+
+# Internal documentation, reports, prompt specifications & audit (Keep local only)
+docs/*
+!docs/NOTE_CONG_NGHE_VA_KIEN_TRUC_FE.md
+!docs/HUONG_DAN_KET_NOI_DATABASE_VA_XU_LY_GOI_TIN.md
+*.docx
+/KIEM_KE_VA_CHUAN_HOA_HE_THONG.md
+/DANH_SACH_CHINH_SUA.md
+/BAO_CAO_*.md
+/HUONG_DAN_*.md
+/NOTE_*.md
+Giao_tiep_web.*
+swagger_cinema.yaml
+note_chinh_sua.html
+
+# Temporary test scripts, media & screenshots
+scripts/
+screenshots/
+task_images/
+asset/
+/test_chinese_rocks_font.png
+/Biểu tượng dải phim TDTDT retro.png
+public/images/logo_tdtdt.png
+!public/images/logo_tdtdt_transparent.png
+public/video_temp/

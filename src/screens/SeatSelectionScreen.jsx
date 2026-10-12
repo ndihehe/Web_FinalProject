@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
+import { useSeatWebSocket } from '../websocket/useSeatWebSocket';
 
 export default function SeatSelectionScreen() {
   const { params, navigate } = useRouter();
@@ -13,10 +14,29 @@ export default function SeatSelectionScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Lấy ID người dùng hiện tại
+  const currentUser = cinemaService.getCurrentUser ? cinemaService.getCurrentUser() : null;
+  const currentUserId = currentUser?.id || null;
+
+  // Khởi tạo kết nối Real-time WebSocket
+  const {
+    holdingSeatIds,
+    isConnected: isSocketConnected,
+    socketError,
+    sendHoldSeat,
+    sendReleaseSeat
+  } = useSeatWebSocket(showtimeId, currentUserId);
+
   useEffect(() => {
     if (!showtimeId) return;
     loadSeatMap();
   }, [showtimeId]);
+
+  useEffect(() => {
+    if (socketError) {
+      setErrorMsg(socketError);
+    }
+  }, [socketError]);
 
   const loadSeatMap = async () => {
     setLoading(true);
@@ -33,10 +53,12 @@ export default function SeatSelectionScreen() {
   };
 
   const handleToggleSeat = (seat) => {
-    if (seat.status !== 'AVAILABLE') return;
+    // Không cho chọn nếu ghế đã bị bán hoặc đang có người khác giữ qua WebSocket
+    if (seat.status !== 'AVAILABLE' || holdingSeatIds.includes(seat.id)) return;
 
     if (selectedSeatIds.includes(seat.id)) {
       setSelectedSeatIds(selectedSeatIds.filter((id) => id !== seat.id));
+      sendReleaseSeat(seat.id); // Bắn tín hiệu WebSocket nhả ghế
       setErrorMsg('');
     } else {
       if (selectedSeatIds.length >= 8) {
@@ -44,6 +66,7 @@ export default function SeatSelectionScreen() {
         return;
       }
       setSelectedSeatIds([...selectedSeatIds, seat.id]);
+      sendHoldSeat(seat.id); // Bắn tín hiệu WebSocket giữ ghế
       setErrorMsg('');
     }
   };
@@ -161,11 +184,13 @@ export default function SeatSelectionScreen() {
                 <div className="row-seats">
                   {rowsMap[rowLetter].map((seat) => {
                     const isSelected = selectedSeatIds.includes(seat.id);
+                    const isHeldByOther = holdingSeatIds.includes(seat.id) && !isSelected;
                     const isBooked = seat.status === 'BOOKED' || seat.status === 'HELD';
                     const isVip = seat.type === 'VIP';
 
                     let seatClass = 'seat-cell';
                     if (isBooked) seatClass += ' booked';
+                    else if (isHeldByOther) seatClass += ' holding-by-other';
                     else if (isSelected) seatClass += ' selected';
                     else if (isVip) seatClass += ' vip';
                     else seatClass += ' standard';
@@ -174,9 +199,13 @@ export default function SeatSelectionScreen() {
                       <button
                         key={seat.id}
                         className={seatClass}
-                        disabled={isBooked}
+                        disabled={isBooked || isHeldByOther}
                         onClick={() => handleToggleSeat(seat)}
-                        title={`${seat.row}${seat.number < 10 ? '0' + seat.number : seat.number} - ${seat.type} (${seat.price.toLocaleString('vi-VN')}đ)`}
+                        title={
+                          isHeldByOther
+                            ? `${seat.row}${seat.number} - Đang có người khác giữ chỗ (Thời gian thực)`
+                            : `${seat.row}${seat.number < 10 ? '0' + seat.number : seat.number} - ${seat.type} (${seat.price.toLocaleString('vi-VN')}đ)`
+                        }
                       >
                         {seat.number}
                       </button>
@@ -204,8 +233,12 @@ export default function SeatSelectionScreen() {
             <span>Ghế Đang Chọn</span>
           </div>
           <div className="legend-item">
+            <span className="legend-sample holding-by-other"></span>
+            <span>Đang có người giữ</span>
+          </div>
+          <div className="legend-item">
             <span className="legend-sample booked"></span>
-            <span>Ghế Đã Có Người Đặt</span>
+            <span>Ghế Đã Bán</span>
           </div>
         </div>
       </div>

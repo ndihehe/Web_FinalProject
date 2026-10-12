@@ -2421,7 +2421,13 @@ export const cinemaService = {
   // 25. GET /user/bookings (Lịch sử đơn vé cá nhân)
   async getUserBookings({ status = '', page = 0, size = 20, sort = 'createdAt,desc', from = null, to = null } = {}) {
     if (IS_REAL_API_MODE) {
-      const res = await apiFetch('/user/bookings', { params: { status, page, size, sort, from, to } });
+      let apiStatus = status;
+      if (status === 'PAID') {
+        apiStatus = 'CONFIRMED';
+      } else if (status === 'PENDING_PAYMENT') {
+        apiStatus = 'PENDING';
+      }
+      const res = await apiFetch('/user/bookings', { params: { status: apiStatus || undefined, page, size, sort, from, to } });
       if (res && res.data) {
         const rawList = Array.isArray(res.data) ? res.data : (Array.isArray(res.data.items) ? res.data.items : []);
         // Tự động làm giàu thông tin (suất chiếu, tên phim, ghế) cho mỗi đơn hàng nếu backend trả về tóm tắt

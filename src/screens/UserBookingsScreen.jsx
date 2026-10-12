@@ -118,6 +118,24 @@ export default function UserBookingsScreen() {
     }
   };
 
+  const filteredBookings = bookings.filter((b) => {
+    if (!selectedStatus) return true;
+    const st = b.status || 'PENDING';
+    if (selectedStatus === 'PAID') {
+      return st === 'PAID' || st === 'CONFIRMED';
+    }
+    if (selectedStatus === 'PENDING_PAYMENT') {
+      return st === 'PENDING' || st === 'PENDING_PAYMENT';
+    }
+    if (selectedStatus === 'REFUNDED') {
+      return st === 'REFUNDED';
+    }
+    if (selectedStatus === 'CANCELLED') {
+      return st === 'CANCELLED';
+    }
+    return st === selectedStatus;
+  });
+
   return (
     <div className="page-container user-bookings-screen">
       <div className="container">
@@ -181,7 +199,7 @@ export default function UserBookingsScreen() {
             <div className="spinner"></div>
             <p>Đang tải đơn đặt vé...</p>
           </div>
-        ) : bookings.length === 0 ? (
+        ) : filteredBookings.length === 0 ? (
           <div className="empty-state">
             <FeatherIcon name="film" size={48} />
             <h3>Chưa có đơn hàng nào trong mục này</h3>
@@ -190,7 +208,7 @@ export default function UserBookingsScreen() {
           </div>
         ) : (
           <div className="bookings-list">
-            {bookings.map((b) => {
+            {filteredBookings.map((b) => {
               const bookingId = b.id || b.bookingId;
               const statusStr = b.status || 'PENDING';
               const isPaid = statusStr === 'PAID' || statusStr === 'CONFIRMED';

@@ -170,10 +170,16 @@ export default function BookingCheckoutScreen() {
         return;
       }
 
-      await cinemaService.createPayment(booking.id, {
+      const payRes = await cinemaService.createPayment(booking.id, {
         method: selectedPaymentMethod,
         expectedVersion: booking.version
       });
+
+      // Nếu là thanh toán qua Cổng VNPay, chuyển hướng trực tiếp sang trang thanh toán sandbox
+      if (payRes?.data?.paymentUrl) {
+        window.location.href = payRes.data.paymentUrl;
+        return;
+      }
 
       const updatedBooking = await cinemaService.getBookingDetail(booking.id);
       const firstTicketId = updatedBooking.data?.ticketIds?.[0];
@@ -181,7 +187,7 @@ export default function BookingCheckoutScreen() {
       if (firstTicketId) {
         navigate(`/ticket/${firstTicketId}`);
       } else {
-        navigate('/user/booking');
+        navigate(`/ticket/booking-${booking.id}`);
       }
     } catch (e) {
       console.error(e);

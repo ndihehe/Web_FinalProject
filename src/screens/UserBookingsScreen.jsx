@@ -190,89 +190,111 @@ export default function UserBookingsScreen() {
           </div>
         ) : (
           <div className="bookings-list">
-            {bookings.map((b) => (
-              <div key={b.id} className="booking-card-orthogonal">
-                <div className="booking-card-header">
-                  <div className="booking-id-tag">
-                    <span>MÃ ĐƠN:</span> <strong>#{b.id}</strong>
-                  </div>
-                  <span className={`booking-status-badge ${b.status.toLowerCase()}`}>
-                    {b.status === 'PAID' ? 'ĐÃ THANH TOÁN' : b.status === 'PENDING_PAYMENT' ? 'CHỜ THANH TOÁN' : b.status === 'REFUNDED' ? 'ĐÃ HOÀN TIỀN' : 'ĐÃ HỦY'}
-                  </span>
-                </div>
+            {bookings.map((b) => {
+              const bookingId = b.id || b.bookingId;
+              const statusStr = b.status || 'PENDING';
+              const isPaid = statusStr === 'PAID' || statusStr === 'CONFIRMED';
+              const isPending = statusStr === 'PENDING' || statusStr === 'PENDING_PAYMENT';
+              const isRefunded = statusStr === 'REFUNDED';
+              const totalDisplay = (Number(b.totalAmount) || 0).toLocaleString('vi-VN');
+              const movieTitle = b.showtime?.movieTitle || 'Đơn đặt vé Cinema';
+              const cinemaName = b.showtime?.cinemaName || 'TDTDT Cinema';
+              const roomName = b.showtime?.roomName || 'Phòng Chiếu 1';
+              const dateStr = b.showtime?.startsAt
+                ? new Date(b.showtime.startsAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+                : '—';
 
-                <div className="booking-card-body">
-                  <div className="b-movie-info">
-                    <h3 className="b-movie-title spotlight-text">{b.showtime.movieTitle}</h3>
-                    <div className="b-meta-row">
-                      <span><FeatherIcon name="map-pin" size={14} /> {b.showtime.cinemaName}</span>
-                      <span>•</span>
-                      <span><FeatherIcon name="monitor" size={14} /> {b.showtime.roomName}</span>
-                      <span>•</span>
-                      <span><FeatherIcon name="calendar" size={14} /> {new Date(b.showtime.startsAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span>
+              return (
+                <div key={bookingId} className="booking-card-orthogonal">
+                  <div className="booking-card-header">
+                    <div className="booking-id-tag">
+                      <span>MÃ ĐƠN:</span> <strong>#{bookingId}</strong>
+                    </div>
+                    <span className={`booking-status-badge ${statusStr.toLowerCase()}`}>
+                      {isPaid ? 'ĐÃ THANH TOÁN' : isPending ? 'CHỜ THANH TOÁN' : isRefunded ? 'ĐÃ HOÀN TIỀN' : 'ĐÃ HỦY'}
+                    </span>
+                  </div>
+
+                  <div className="booking-card-body">
+                    <div className="b-movie-info">
+                      <h3 className="b-movie-title spotlight-text">{movieTitle}</h3>
+                      <div className="b-meta-row">
+                        <span><FeatherIcon name="map-pin" size={14} /> {cinemaName}</span>
+                        <span>•</span>
+                        <span><FeatherIcon name="monitor" size={14} /> {roomName}</span>
+                        <span>•</span>
+                        <span><FeatherIcon name="calendar" size={14} /> {dateStr}</span>
+                      </div>
+
+                      <div className="b-seats-row">
+                        <span>Ghế đã chọn: </span>
+                        {Array.isArray(b.seats) && b.seats.length > 0 ? (
+                          b.seats.map((s, idx) => (
+                            <span key={s.seatId || idx} className="b-seat-chip">
+                              {s.label || `Ghế #${s.seatId || ''}`} {s.type ? `(${s.type})` : ''}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="b-seat-chip">Vé tiêu chuẩn</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="b-seats-row">
-                      <span>Ghế đã chọn: </span>
-                      {b.seats.map((s) => (
-                        <span key={s.seatId} className="b-seat-chip">{s.label} ({s.type})</span>
-                      ))}
+                    <div className="b-total-box">
+                      <span className="b-total-label">Tổng thanh toán:</span>
+                      <span className="b-total-val spotlight-text">{totalDisplay} đ</span>
                     </div>
                   </div>
 
-                  <div className="b-total-box">
-                    <span className="b-total-label">Tổng thanh toán:</span>
-                    <span className="b-total-val spotlight-text">{b.totalAmount.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                </div>
-
-                <div className="booking-card-actions">
-                  {b.status === 'PAID' && (
-                    <>
-                      {b.ticketIds && b.ticketIds.length > 0 && (
+                  <div className="booking-card-actions">
+                    {isPaid && (
+                      <>
                         <button
                           className="btn-action-primary"
-                          onClick={() => navigate(`/ticket/${b.ticketIds[0]}`)}
+                          onClick={() => {
+                            const targetId = (b.ticketIds && b.ticketIds.length > 0) ? b.ticketIds[0] : `booking-${bookingId}`;
+                            navigate(`/ticket/${targetId}`);
+                          }}
                         >
                           <FeatherIcon name="tag" size={16} /> Xem Vé & Mã QR
                         </button>
-                      )}
-                      <button
-                        className="btn-action-secondary"
-                        onClick={() => handleOpenInvoice(b.id)}
-                      >
-                        <FeatherIcon name="file-text" size={16} /> Hóa Đơn Điện Tử
-                      </button>
-                      {b.eligibility && b.eligibility.canRefund && (
                         <button
-                          className="btn-action-danger"
-                          onClick={() => setRefundBooking(b)}
+                          className="btn-action-secondary"
+                          onClick={() => handleOpenInvoice(bookingId)}
                         >
-                          <FeatherIcon name="rotate-ccw" size={16} /> Hoàn Tiền Vé
+                          <FeatherIcon name="file-text" size={16} /> Hóa Đơn Điện Tử
                         </button>
-                      )}
-                      {b.eligibility && b.eligibility.canReview && (
-                        <button
-                          className="btn-action-accent"
-                          onClick={() => setReviewBooking(b)}
-                        >
-                          <FeatherIcon name="star" size={16} /> Đánh Giá Phim
-                        </button>
-                      )}
-                    </>
-                  )}
+                        {b.eligibility && b.eligibility.canRefund && (
+                          <button
+                            className="btn-action-danger"
+                            onClick={() => setRefundBooking(b)}
+                          >
+                            <FeatherIcon name="rotate-ccw" size={16} /> Hoàn Tiền Vé
+                          </button>
+                        )}
+                        {b.eligibility && b.eligibility.canReview && (
+                          <button
+                            className="btn-action-accent"
+                            onClick={() => setReviewBooking(b)}
+                          >
+                            <FeatherIcon name="star" size={16} /> Đánh Giá Phim
+                          </button>
+                        )}
+                      </>
+                    )}
 
-                  {(b.status === 'PENDING_PAYMENT' || b.status === 'PENDING') && (
-                    <button
-                      className="btn-action-primary"
-                      onClick={() => navigate(`/booking/${b.id || b.bookingId}`)}
-                    >
-                      <FeatherIcon name="credit-card" size={16} /> Tiếp Tục Thanh Toán
-                    </button>
-                  )}
+                    {isPending && (
+                      <button
+                        className="btn-action-primary"
+                        onClick={() => navigate(`/booking/${bookingId}`)}
+                      >
+                        <FeatherIcon name="credit-card" size={16} /> Tiếp Tục Thanh Toán
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

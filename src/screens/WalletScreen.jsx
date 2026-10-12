@@ -36,7 +36,11 @@ export default function WalletScreen() {
   const handleTopUp = async () => {
     setSubmitting(true);
     try {
-      await cinemaService.topUpWallet({ amount: Number(topUpAmount) });
+      const res = await cinemaService.topUpWallet({ amount: Number(topUpAmount) });
+      if (res?.data?.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+        return;
+      }
       setIsTopUpModalOpen(false);
       setAlertMsg(`Nạp thành công ${Number(topUpAmount).toLocaleString('vi-VN')} đ vào ví!`);
       await loadWalletData();
@@ -85,7 +89,7 @@ export default function WalletScreen() {
             <div className="w-card-body">
               <span className="w-balance-label">SỐ DƯ KHẢ DỤNG</span>
               <h1 className="w-balance-amount spotlight-text">
-                {wallet ? wallet.balance.toLocaleString('vi-VN') : 0} <span className="w-currency">VND</span>
+                {wallet ? (Number(wallet.balance) || 0).toLocaleString('vi-VN') : 0} <span className="w-currency">VND</span>
               </h1>
             </div>
 
@@ -131,25 +135,32 @@ export default function WalletScreen() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="tx-time-col">
-                        {new Date(tx.createdAt).toLocaleString('vi-VN')}
-                      </td>
-                      <td>
-                        <span className={`tx-type-badge ${tx.type.toLowerCase()}`}>
-                          {tx.type === 'TOP_UP' ? 'NẠP TIỀN' : tx.type === 'PAYMENT' ? 'THANH TOÁN' : 'HOÀN TIỀN'}
-                        </span>
-                      </td>
-                      <td className="tx-desc-col">{tx.description}</td>
-                      <td className={`tx-amount-col ${tx.direction === 'CREDIT' ? 'credit' : 'debit'}`}>
-                        {tx.direction === 'CREDIT' ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} đ
-                      </td>
-                      <td className="tx-balance-col spotlight-text">
-                        {tx.balanceAfter.toLocaleString('vi-VN')} đ
-                      </td>
-                    </tr>
-                  ))}
+                  {transactions.map((tx) => {
+                    const txId = tx.transactionId || tx.id || Math.random();
+                    const txType = tx.transactionType || tx.type || 'PAYMENT';
+                    const isCredit = tx.direction === 'CREDIT' || txType === 'ADD_MONEY' || txType === 'TOP_UP' || txType === 'REFUND';
+                    const amount = Number(tx.amount || 0);
+                    const balanceAfter = tx.balanceAfter !== undefined && tx.balanceAfter !== null ? Number(tx.balanceAfter) : null;
+                    return (
+                      <tr key={txId}>
+                        <td className="tx-time-col">
+                          {tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : '—'}
+                        </td>
+                        <td>
+                          <span className={`tx-type-badge ${txType.toLowerCase()}`}>
+                            {txType === 'ADD_MONEY' || txType === 'TOP_UP' ? 'NẠP TIỀN' : txType === 'REFUND' ? 'HOÀN TIỀN' : 'THANH TOÁN'}
+                          </span>
+                        </td>
+                        <td className="tx-desc-col">{tx.description || 'Giao dịch ví'}</td>
+                        <td className={`tx-amount-col ${isCredit ? 'credit' : 'debit'}`}>
+                          {isCredit ? '+' : '-'}{amount.toLocaleString('vi-VN')} đ
+                        </td>
+                        <td className="tx-balance-col spotlight-text">
+                          {balanceAfter !== null ? `${balanceAfter.toLocaleString('vi-VN')} đ` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

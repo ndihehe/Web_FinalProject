@@ -54,14 +54,51 @@ export default function TicketDetailScreen() {
 
   const loadTicket = async () => {
     setLoading(true);
+    setAlertMsg('');
     try {
-      const tRes = await cinemaService.getTicketDetail(ticketId);
-      setTicket(tRes.data);
+      let tData = null;
+      const isBookingParam = String(ticketId).startsWith('booking-') || String(ticketId).startsWith('bk-');
+      const cleanBookingId = String(ticketId).replace(/^booking-/, '');
 
-      // Tải kèm booking để lấy eligibility (hoàn tiền, đánh giá)
-      if (tRes.data.bookingId) {
-        const bRes = await cinemaService.getBookingDetail(tRes.data.bookingId);
-        setBooking(bRes.data);
+      if (isBookingParam) {
+        try {
+          const bTickets = await cinemaService.getBookingTickets(cleanBookingId);
+          const list = Array.isArray(bTickets?.data) ? bTickets.data : [];
+          if (list.length > 0) tData = list[0];
+        } catch (_) {}
+      }
+
+      if (!tData) {
+        try {
+          const tRes = await cinemaService.getTicketDetail(ticketId);
+          tData = tRes?.data;
+        } catch (err) {
+          try {
+            const bTickets = await cinemaService.getBookingTickets(ticketId);
+            const list = Array.isArray(bTickets?.data) ? bTickets.data : [];
+            if (list.length > 0) {
+              tData = list[0];
+            } else {
+              throw err;
+            }
+          } catch (_) {
+            throw err;
+          }
+        }
+      }
+
+      if (tData) {
+        setTicket(tData);
+        if (tData.bookingId) {
+          try {
+            const bRes = await cinemaService.getBookingDetail(tData.bookingId);
+            setBooking(bRes?.data);
+          } catch (be) {
+            console.warn('Không thể tải chi tiết booking:', be);
+          }
+        }
+      } else {
+        setTicket(null);
       }
     } catch (e) {
       console.error(e);
@@ -147,10 +184,12 @@ export default function TicketDetailScreen() {
     );
   }
 
-  const isVoid = ticket.status === 'VOID';
-  const isUsed = ticket.status === 'USED';
+  const ticketStatus = ticket.status || 'VALID';
+  const isVoid = ticketStatus === 'VOID';
+  const isUsed = ticketStatus === 'USED';
   const canRefund = booking && booking.eligibility && booking.eligibility.canRefund && !isVoid && !isUsed;
   const canReview = booking && booking.eligibility && booking.eligibility.canReview && !isVoid;
+  const startsAtDate = ticket.startsAt && !isNaN(new Date(ticket.startsAt).getTime()) ? new Date(ticket.startsAt) : null;
 
   return (
     <div className="page-container ticket-screen">
@@ -161,7 +200,7 @@ export default function TicketDetailScreen() {
           <span className="breadcrumb-separator">/</span>
           <span className="breadcrumb-link" onClick={() => navigate('/user/booking')}>Vé của tôi</span>
           <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Vé #{ticket.id}</span>
+          <span className="breadcrumb-current">Vé #{ticket.id || ticket.ticketId}</span>
         </div>
 
         {alertMsg && (
@@ -181,39 +220,39 @@ export default function TicketDetailScreen() {
                   <img src="/images/logo_tdtdt_transparent.png" alt="TDTDT Logo" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
                   <span className="ticket-cinema-badge">TDTDT CINEMA E-TICKET</span>
                 </div>
-                <span className={`ticket-status-pill ${ticket.status.toLowerCase()}`}>
-                  {ticket.status === 'VALID' ? 'HỢP LỆ' : ticket.status === 'USED' ? 'ĐÃ SỬ DỤNG' : 'ĐÃ HOÀN TIỀN (VOID)'}
+                <span className={`ticket-status-pill ${ticketStatus.toLowerCase()}`}>
+                  {ticketStatus === 'VALID' ? 'HỢP LỆ' : ticketStatus === 'USED' ? 'ĐÃ SỬ DỤNG' : 'ĐÃ HOÀN TIỀN (VOID)'}
                 </span>
               </div>
 
-              <h2 className="ticket-movie-title spotlight-text">{ticket.movieTitle}</h2>
+              <h2 className="ticket-movie-title spotlight-text">{ticket.movieTitle || ticket.movieName || 'Vé xem phim'}</h2>
 
               <div className="ticket-grid-details">
                 <div className="t-detail-item">
                   <span className="t-label">CỤM RẠP</span>
-                  <span className="t-value spotlight-text">{ticket.cinemaName}</span>
+                  <span className="t-value spotlight-text">{ticket.cinemaName || 'TDTDT Cinema'}</span>
                 </div>
                 <div className="t-detail-item">
                   <span className="t-label">PHÒNG CHIẾU</span>
-                  <span className="t-value spotlight-text">{ticket.roomName}</span>
+                  <span className="t-value spotlight-text">{ticket.roomName || 'Phòng Chiếu 1'}</span>
                 </div>
                 <div className="t-detail-item">
                   <span className="t-label">GIỜ BẮT ĐẦU</span>
                   <span className="t-value spotlight-text">
-                    {new Date(ticket.startsAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    {startsAtDate ? startsAtDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '19:00'}
                   </span>
                 </div>
                 <div className="t-detail-item">
                   <span className="t-label">NGÀY CHIẾU</span>
                   <span className="t-value spotlight-text">
-                    {new Date(ticket.startsAt).toLocaleDateString('vi-VN')}
+                    {startsAtDate ? startsAtDate.toLocaleDateString('vi-VN') : 'Hôm nay'}
                   </span>
                 </div>
               </div>
 
               <div className="ticket-seat-highlight-box">
                 <span className="seat-box-label">VỊ TRÍ GHẾ NGỒI</span>
-                <span className="seat-box-value spotlight-text">{ticket.seatLabel}</span>
+                <span className="seat-box-value spotlight-text">{ticket.seatLabel || ticket.seatName || 'Ghế tiêu chuẩn'}</span>
               </div>
 
               <div className="ticket-notice">
@@ -232,7 +271,7 @@ export default function TicketDetailScreen() {
             <div className="ticket-stub">
               <div className="stub-header">
                 <span className="stub-label">MÃ VÉ</span>
-                <strong className="stub-code">{ticket.id}</strong>
+                <strong className="stub-code">{ticket.id || ticket.ticketId || ticket.ticketCode}</strong>
               </div>
 
               <div className="qr-code-box">

@@ -1175,24 +1175,23 @@ function normalizeBookingData(raw) {
       id: b.showTime.showTimeId || b.showTime.id || 0,
       showtimeId: b.showTime.showTimeId || b.showTime.id || 0,
       movieId: b.showTime.movieId || null,
-      movieTitle: b.showTime.movieTitle || 'Phim Beta Cinema',
-      cinemaId: b.showTime.cinemaId || null,
-      cinemaName: b.showTime.cinemaName || 'Beta Cinema',
+      movieTitle: b.showTime.movieTitle || 'Vé xem phim',
+      cinemaName: b.showTime.cinemaName || 'TDTDT Cinema',
       roomName: b.showTime.roomName || 'Phòng Chiếu 1',
       format: b.showTime.format || '2D Phụ Đề',
       startsAt: b.showTime.startTime || b.showTime.startsAt || new Date().toISOString(),
       startTime: b.showTime.startTime || b.showTime.startsAt || new Date().toISOString()
     };
-  } else if (!b.showtime && b.showTimeId) {
+  } else if (!b.showtime) {
     b.showtime = {
-      id: b.showTimeId,
-      showtimeId: b.showTimeId,
-      movieTitle: 'Phim Beta Cinema',
-      cinemaName: 'Beta Cinema',
+      id: b.showTimeId || 0,
+      showtimeId: b.showTimeId || 0,
+      movieTitle: 'Vé xem phim TDTDT Cinema',
+      cinemaName: 'TDTDT Cinema',
       roomName: 'Phòng Chiếu 1',
       format: '2D Phụ Đề',
-      startsAt: b.holdExpiresAt || b.expiresAt || new Date().toISOString(),
-      startTime: b.holdExpiresAt || b.expiresAt || new Date().toISOString()
+      startsAt: b.holdExpiresAt || b.expiresAt || b.createdAt || new Date().toISOString(),
+      startTime: b.holdExpiresAt || b.expiresAt || b.createdAt || new Date().toISOString()
     };
   }
   if (b.showtime && !b.showTime) {
@@ -1205,8 +1204,8 @@ function normalizeBookingData(raw) {
     if (!b.showtime.startTime && b.showtime.startsAt) {
       b.showtime.startTime = b.showtime.startsAt;
     }
-    b.showtime.movieTitle = b.showtime.movieTitle || 'Phim Beta Cinema';
-    b.showtime.cinemaName = b.showtime.cinemaName || 'Beta Cinema';
+    b.showtime.movieTitle = b.showtime.movieTitle || 'Vé xem phim TDTDT Cinema';
+    b.showtime.cinemaName = b.showtime.cinemaName || 'TDTDT Cinema';
     b.showtime.roomName = b.showtime.roomName || 'Phòng Chiếu 1';
     b.showtime.format = b.showtime.format || '2D Phụ Đề';
   }
@@ -1236,6 +1235,8 @@ function normalizeBookingData(raw) {
         lineTotal: Number(item.lineTotal !== undefined ? item.lineTotal : unitPrice * qty)
       };
     });
+  } else {
+    b.fnbItems = [];
   }
 
   // 6. Map seats: array of strings ["H08", "H09"] or seatIds -> objects with label
@@ -1264,6 +1265,9 @@ function normalizeBookingData(raw) {
       unitPrice: Number(s.unitPrice || s.price || 0)
     }));
     b.seatLabels = b.seats.map((s) => s.label);
+  } else {
+    b.seats = [];
+    b.seatLabels = [];
   }
 
   // 7. Map voucher applied
@@ -1311,6 +1315,23 @@ function normalizeBookingData(raw) {
   }
 
   return b;
+}
+
+export function normalizeTicket(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const t = { ...raw };
+  if (t.ticketId !== undefined && t.id === undefined) t.id = t.ticketId;
+  if (t.id !== undefined && t.ticketId === undefined) t.ticketId = t.id;
+  if (!t.movieTitle && t.movieName) t.movieTitle = t.movieName;
+  if (!t.movieName && t.movieTitle) t.movieName = t.movieTitle;
+  if (!t.startsAt && t.showTimeStartTime) t.startsAt = t.showTimeStartTime;
+  if (!t.showTimeStartTime && t.startsAt) t.showTimeStartTime = t.startsAt;
+  if (!t.seatLabel && t.seatName) t.seatLabel = t.seatName;
+  if (!t.seatName && t.seatLabel) t.seatName = t.seatLabel;
+  if (!t.cinemaName) t.cinemaName = 'TDTDT Cinema';
+  if (!t.roomName) t.roomName = 'Phòng Chiếu';
+  if (!t.status) t.status = 'VALID';
+  return t;
 }
 
 export const cinemaService = {
@@ -2142,13 +2163,35 @@ export const cinemaService = {
   // 18. GET /ticket/{id}
   async getTicketDetail(id) {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/tickets/' + id).catch(() => apiFetch('/ticket/' + id));
+      const numericId = typeof id === 'string' ? (parseInt(id.replace(/\D/g, ''), 10) || id) : id;
+      const res = await apiFetch('/tickets/' + numericId);
+      if (res && res.data) {
+        res.data = normalizeTicket(res.data);
+      }
+      return res;
     }
     await delay();
     const state = getState();
     const ticket = state.tickets.find((t) => t.id === id);
     if (!ticket) throw errorResponse('RESOURCE_NOT_FOUND', `Không tìm thấy vé với mã ${id}`);
-    return successResponse(ticket);
+    return successResponse(normalizeTicket(ticket));
+  },
+
+  // 18.1 GET /bookings/{bookingId}/tickets (Danh sách vé theo đơn hàng)
+  async getBookingTickets(bookingId) {
+    if (IS_REAL_API_MODE) {
+      const numericId = typeof bookingId === 'string' ? (parseInt(bookingId.replace(/\D/g, ''), 10) || bookingId) : bookingId;
+      const res = await apiFetch('/bookings/' + numericId + '/tickets');
+      if (res && res.data) {
+        const items = Array.isArray(res.data) ? res.data : (Array.isArray(res.data.items) ? res.data.items : []);
+        res.data = items.map(normalizeTicket);
+      }
+      return res;
+    }
+    await delay();
+    const state = getState();
+    const tickets = state.tickets.filter((t) => t.bookingId === bookingId);
+    return successResponse(tickets.map(normalizeTicket));
   },
 
   // 19. GET /booking/{id}/invoice
@@ -2280,9 +2323,13 @@ export const cinemaService = {
   // 22. GET /wallet (Số dư ví)
   async getWallet() {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/wallet')
+      const res = await apiFetch('/wallet')
         .catch(() => apiFetch('/user/wallet'))
-        .catch(() => successResponse({ balance: 0, status: 'INACTIVE', currency: 'VND' }));
+        .catch(() => ({ success: true, data: { balance: 0, status: 'ACTIVE', currency: 'VND' } }));
+      if (res && res.data) {
+        res.data.balance = Number(res.data.balance !== undefined ? res.data.balance : 0);
+      }
+      return res;
     }
     await delay();
     const state = getState();
@@ -2293,7 +2340,8 @@ export const cinemaService = {
   async topUpWallet({ amount = 100000, method = 'GATEWAY' } = {}, idempotencyKey = null) {
     if (IS_REAL_API_MODE) {
       const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
-      return apiFetch('/wallet/top-up', { method: 'POST', body: { amount, method }, headers });
+      const apiMethod = method === 'GATEWAY' ? 'VNPAY' : method;
+      return apiFetch('/wallet/top-up', { method: 'POST', body: { amount, method: apiMethod }, headers });
     }
     await delay();
     if (amount < 10000 || amount > 10000000) {
@@ -2334,8 +2382,35 @@ export const cinemaService = {
   // 24. GET /wallet/transactions (Sổ cái biến động số dư)
   async getWalletTransactions({ page = 0, size = 20, type = null } = {}) {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/wallet/transactions', { params: { page, size, type } })
-        .catch(() => apiFetch('/wallet/transaction', { params: { page, size, type } }));
+      const res = await apiFetch('/wallet/transactions', { params: { page, size, type } })
+        .catch(() => ({ success: true, data: { items: [], meta: { totalElements: 0 } } }));
+      if (res && res.data) {
+        const normalizeTx = (tx) => {
+          if (!tx || typeof tx !== 'object') return tx;
+          const item = { ...tx };
+          if (item.transactionId !== undefined && item.id === undefined) item.id = item.transactionId;
+          if (item.id !== undefined && item.transactionId === undefined) item.transactionId = item.id;
+          const tType = item.transactionType || item.type || 'PAYMENT';
+          item.type = tType;
+          item.transactionType = tType;
+          if (!item.direction) {
+            item.direction = (tType === 'ADD_MONEY' || tType === 'TOP_UP' || tType === 'REFUND') ? 'CREDIT' : 'DEBIT';
+          }
+          if (item.amount !== undefined) item.amount = Number(item.amount);
+          if (item.balanceAfter === undefined || item.balanceAfter === null) {
+            item.balanceAfter = item.amount || 0;
+          } else {
+            item.balanceAfter = Number(item.balanceAfter);
+          }
+          return item;
+        };
+        if (Array.isArray(res.data)) {
+          res.data = res.data.map(normalizeTx);
+        } else if (Array.isArray(res.data.items)) {
+          res.data.items = res.data.items.map(normalizeTx);
+        }
+      }
+      return res;
     }
     await delay();
     const state = getState();
@@ -2346,13 +2421,31 @@ export const cinemaService = {
   // 25. GET /user/bookings (Lịch sử đơn vé cá nhân)
   async getUserBookings({ status = '', page = 0, size = 20, sort = 'createdAt,desc', from = null, to = null } = {}) {
     if (IS_REAL_API_MODE) {
-      const res = await apiFetch('/user/bookings', { params: { status, page, size, sort, from, to } })
-        .catch(() => apiFetch('/user/booking', { params: { status, page, size, sort, from, to } }));
+      const res = await apiFetch('/user/bookings', { params: { status, page, size, sort, from, to } });
       if (res && res.data) {
+        const rawList = Array.isArray(res.data) ? res.data : (Array.isArray(res.data.items) ? res.data.items : []);
+        // Tự động làm giàu thông tin (suất chiếu, tên phim, ghế) cho mỗi đơn hàng nếu backend trả về tóm tắt
+        const enriched = await Promise.all(
+          rawList.map(async (rawItem) => {
+            const base = normalizeBookingData(rawItem);
+            const bId = base.id || base.bookingId;
+            if (bId) {
+              try {
+                const detailRes = await this.getBookingDetail(bId);
+                if (detailRes && detailRes.data) {
+                  return { ...base, ...detailRes.data };
+                }
+              } catch (_) {
+                // Giữ base nếu không lấy được chi tiết
+              }
+            }
+            return base;
+          })
+        );
         if (Array.isArray(res.data)) {
-          res.data = res.data.map(normalizeBookingData);
+          res.data = enriched;
         } else if (Array.isArray(res.data.items)) {
-          res.data.items = res.data.items.map(normalizeBookingData);
+          res.data.items = enriched;
         }
       }
       return res;

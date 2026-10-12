@@ -12,6 +12,7 @@ export default function MovieDetailScreen() {
   const [showtimes, setShowtimes] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showtimesLoading, setShowtimesLoading] = useState(false);
   const [selectedDateIndex, setSelectedDateIndex] = useState(0);
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCinemaId, setSelectedCinemaId] = useState('');
@@ -20,18 +21,23 @@ export default function MovieDetailScreen() {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [expandedCinemas, setExpandedCinemas] = useState({});
 
-  // Sinh 7 ngày liên tiếp chuẩn lịch chiếu (Hôm nay, Ngày mai, Thứ 2, Thứ 3...)
+  // Sinh 7 ngày liên tiếp chuẩn lịch chiếu (Hôm nay, Ngày mai, Thứ 2, Thứ 3...) theo múi giờ địa phương
   const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
   const dateOptions = Array.from({ length: 7 }).map((_, offset) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return {
       dayOfWeek: offset === 0 ? 'HÔM NAY' : offset === 1 ? 'NGÀY MAI' : dayNames[d.getDay()].toUpperCase(),
       dateNumber: d.getDate(),
-      formatted: `${d.getDate() < 10 ? '0' + d.getDate() : d.getDate()}/${d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : d.getMonth() + 1}`,
-      fullDate: d.toISOString().split('T')[0]
+      formatted: `${day}/${month}`,
+      fullDate: `${year}-${month}-${day}`
     };
   });
+
+  const selectedDateStr = dateOptions[selectedDateIndex]?.fullDate;
 
   useEffect(() => {
     if (!movieId) return;
@@ -41,30 +47,51 @@ export default function MovieDetailScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [movieRes, showtimeRes, reviewRes, cinemaRes] = await Promise.all([
+      const [movieRes, reviewRes, cinemaRes] = await Promise.all([
         cinemaService.getMovieDetail(movieId),
-        cinemaService.getMovieShowtimes(movieId),
         cinemaService.getMovieReviews(movieId),
         cinemaService.getCinemas()
       ]);
       setMovie(movieRes?.data);
-      setShowtimes(Array.isArray(showtimeRes?.data) ? showtimeRes.data : (showtimeRes?.data?.items || []));
       setReviews(Array.isArray(reviewRes?.data) ? reviewRes.data : (reviewRes?.data?.items || []));
       setCinemas(Array.isArray(cinemaRes?.data) ? cinemaRes.data : (cinemaRes?.data?.items || []));
-
-      // Mặc định mở rộng tất cả rạp
-      const expandMap = {};
-      const stList = Array.isArray(showtimeRes?.data) ? showtimeRes.data : (showtimeRes?.data?.items || []);
-      stList.forEach(st => {
-        expandMap[st.cinemaId] = true;
-      });
-      setExpandedCinemas(expandMap);
     } catch (e) {
       console.error('Lỗi tải chi tiết phim:', e);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadShowtimes = async (dateStr) => {
+    if (!movieId || !dateStr) return;
+    setShowtimesLoading(true);
+    try {
+      const showtimeRes = await cinemaService.getMovieShowtimes(movieId, { date: dateStr });
+      const stList = Array.isArray(showtimeRes?.data) ? showtimeRes.data : (showtimeRes?.data?.items || []);
+      setShowtimes(stList);
+
+      setExpandedCinemas((prev) => {
+        const next = { ...prev };
+        stList.forEach((st) => {
+          if (next[st.cinemaId] === undefined) {
+            next[st.cinemaId] = true;
+          }
+        });
+        return next;
+      });
+    } catch (e) {
+      console.error('Lỗi tải suất chiếu theo ngày:', e);
+      setShowtimes([]);
+    } finally {
+      setShowtimesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (movieId && selectedDateStr) {
+      loadShowtimes(selectedDateStr);
+    }
+  }, [movieId, selectedDateStr]);
 
   const toggleCinemaExpand = (cinemaId) => {
     setExpandedCinemas(prev => ({
@@ -81,15 +108,18 @@ export default function MovieDetailScreen() {
     }
   };
 
-  const selectedDateStr = dateOptions[selectedDateIndex]?.fullDate;
   const filteredShowtimes = showtimes.filter((st) => {
-    if (selectedCinemaId && st.cinemaId !== selectedCinemaId) return false;
+    if (selectedCinemaId && String(st.cinemaId) !== String(selectedCinemaId)) return false;
     if (selectedCity) {
-      const cinemaObj = cinemas.find(c => c.id === st.cinemaId);
+      const cinemaObj = cinemas.find(c => String(c.id) === String(st.cinemaId));
       if (cinemaObj && cinemaObj.cityCode !== selectedCity) return false;
     }
     if (selectedDateStr) {
-      const stDateStr = new Date(st.startsAt).toISOString().split('T')[0];
+      const d = new Date(st.startsAt);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const stDateStr = `${year}-${month}-${day}`;
       if (stDateStr !== selectedDateStr) return false;
     }
     return true;
@@ -98,11 +128,11 @@ export default function MovieDetailScreen() {
   // Gom nhóm suất chiếu theo cụm rạp
   const showtimesByCinema = filteredShowtimes.reduce((acc, st) => {
     if (!acc[st.cinemaId]) {
-      const cObj = cinemas.find(c => c.id === st.cinemaId);
+      const cObj = cinemas.find(c => String(c.id) === String(st.cinemaId));
       acc[st.cinemaId] = {
         cinemaName: st.cinemaName,
         cinemaId: st.cinemaId,
-        address: cObj ? cObj.address : 'Chi nhánh Beta Cinemas',
+        address: cObj ? cObj.address : 'Chi nhánh Cinema',
         slots: []
       };
     }
@@ -276,8 +306,8 @@ export default function MovieDetailScreen() {
                 <button
                   key={c.id}
                   type="button"
-                  className={`chain-tag-btn ${selectedCinemaId === c.id ? 'active' : ''}`}
-                  onClick={() => setSelectedCinemaId(prev => prev === c.id ? '' : c.id)}
+                  className={`chain-tag-btn ${String(selectedCinemaId) === String(c.id) ? 'active' : ''}`}
+                  onClick={() => setSelectedCinemaId(prev => String(prev) === String(c.id) ? '' : c.id)}
                 >
                   {c.name}
                 </button>
@@ -285,7 +315,12 @@ export default function MovieDetailScreen() {
             </div>
 
             {/* Danh sách các cụm rạp và các suất chiếu dạng StartsAt ~ EndsAt (Style Img 7 & 8) */}
-            {Object.keys(showtimesByCinema).length === 0 ? (
+            {showtimesLoading ? (
+              <div className="empty-schedule-card font-sf-rounded" style={{ minHeight: '160px' }}>
+                <div className="spinner"></div>
+                <p style={{ marginTop: '14px', color: '#8c9ab0' }}>Đang tải lịch chiếu...</p>
+              </div>
+            ) : Object.keys(showtimesByCinema).length === 0 ? (
               <div className="empty-schedule-card font-sf-rounded">
                 <FeatherIcon name="calendar" size={42} className="empty-icon" />
                 <h3>Chưa có suất chiếu phù hợp cho ngày đã chọn</h3>

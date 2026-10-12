@@ -36,7 +36,17 @@ function parseHash(hashString) {
 }
 
 export function RouterProvider({ children }) {
-  const [currentHash, setCurrentHash] = useState(() => window.location.hash || '#/');
+  const [currentHash, setCurrentHash] = useState(() => {
+    if (window.location.hash) return window.location.hash;
+    if (window.location.pathname && window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+      const initial = '#' + window.location.pathname + window.location.search;
+      try {
+        window.history.replaceState(null, '', initial);
+      } catch (_) {}
+      return initial;
+    }
+    return '#/';
+  });
 
   useEffect(() => {
     const handleHashChange = () => {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RouterProvider, useRouter } from './router';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -23,6 +23,16 @@ import ErrorBoundary from './components/ErrorBoundary';
 function AppContent() {
   const { path, segments } = useRouter();
   const { openAuthModal } = useAuthModal();
+  const [authKey, setAuthKey] = useState(0);
+
+  // Lắng nghe sự kiện auth-changed để tự động unmount và mount lại màn hình khi đăng nhập/đăng xuất/đổi tài khoản
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setAuthKey((prev) => prev + 1);
+    };
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
+  }, []);
 
   // If directly accessing /login, /register, /forgot-password in URL, pop up the modal over the current screen
   useEffect(() => {
@@ -258,7 +268,7 @@ function AppContent() {
     <div className="app-layout">
       <Header />
       <main className="main-content-wrapper">
-        <ErrorBoundary key={path}>
+        <ErrorBoundary key={`${path}-${authKey}`}>
           {renderScreen()}
         </ErrorBoundary>
       </main>

@@ -133,7 +133,11 @@ export default function Header() {
   const handleLogout = async () => {
     await cinemaService.logout();
     setCurrentUser(null);
+    setUserStats({ walletBalance: 0, bookingsCount: 0, vouchersCount: 0 });
     window.dispatchEvent(new Event('auth-changed'));
+    if (path.startsWith('/user') || path.startsWith('/wallet')) {
+      navigate('/');
+    }
   };
 
   return (

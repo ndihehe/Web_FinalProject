@@ -8,15 +8,24 @@ export default function UserVouchersScreen() {
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadVouchers = () => {
+    setLoading(true);
     cinemaService.getUserVouchers().then((res) => {
       const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);
       setVouchers(list);
-      setLoading(false);
     }).catch((e) => {
       console.error(e);
+      setVouchers([]);
+    }).finally(() => {
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadVouchers();
+    const handleAuthChange = () => loadVouchers();
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
   return (

@@ -1091,6 +1091,13 @@ async function apiFetch(endpoint, { method = 'GET', body = null, params = null, 
   }
 
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('cinema_auth_token');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'unauthorized' } }));
+      }
+    }
     const errorMsg = json?.error || json?.message || ('HTTP ' + res.status + ': ' + res.statusText);
     const code = json?.code || ('ERR_' + res.status);
     const fieldErrors = json?.fieldErrors || [];
@@ -1816,6 +1823,8 @@ export const cinemaService = {
 
     const newBooking = {
       id: bookingId,
+      userId: state.currentUser?.id,
+      userEmail: state.currentUser?.email,
       status: 'PENDING_PAYMENT',
       version: 0,
       showtime,
@@ -2459,6 +2468,9 @@ export const cinemaService = {
     await delay();
     const state = getState();
     let list = [...state.bookings];
+    if (state.currentUser?.email || state.currentUser?.id) {
+      list = list.filter((b) => (!b.userEmail && !b.userId) || b.userEmail === state.currentUser.email || b.userId === state.currentUser.id);
+    }
     if (status) {
       list = list.filter((b) => b.status === status);
     }
@@ -2530,14 +2542,18 @@ export const cinemaService = {
       if (res.data?.refreshToken) {
         localStorage.setItem('refresh_token', res.data.refreshToken);
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'login', user: res?.data } }));
+      }
       return res;
     }
     await delay();
     if (!email || !password) throw errorResponse('INVALID_CREDENTIALS', 'Email và mật khẩu không được để trống');
     const state = getState();
+    const userHash = Math.abs(email.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)).toString(36);
     state.currentUser = {
-      id: 'usr-001',
-      fullName: 'Nguyễn Minh Beta',
+      id: 'usr-' + userHash,
+      fullName: email.split('@')[0],
       email: email,
       phone: '0901234567',
       role: 'USER',
@@ -2546,6 +2562,9 @@ export const cinemaService = {
     };
     state.csrfToken = 'csrf-' + Math.random().toString(36).substring(2, 12);
     saveState(state);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'login', user: state.currentUser } }));
+    }
     return successResponse(state.currentUser);
   },
 
@@ -2556,6 +2575,9 @@ export const cinemaService = {
       if (res.data?.accessToken) {
         localStorage.setItem('access_token', res.data.accessToken);
         localStorage.setItem('cinema_auth_token', res.data.accessToken);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'register', user: res?.data } }));
+        }
       }
       return res;
     }
@@ -2574,6 +2596,9 @@ export const cinemaService = {
       createdAt: new Date().toISOString()
     };
     saveState(state);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'register', user: state.currentUser } }));
+    }
     return successResponse(state.currentUser);
   },
 
@@ -2592,6 +2617,9 @@ export const cinemaService = {
         localStorage.removeItem('cinema_auth_token');
         localStorage.removeItem('refresh_token');
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'logout' } }));
+      }
       return successResponse(null, null, 'Đăng xuất thành công');
     }
     await delay();
@@ -2599,6 +2627,9 @@ export const cinemaService = {
     state.currentUser = null;
     state.csrfToken = 'csrf-' + Math.random().toString(36).substring(2, 12);
     saveState(state);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'logout' } }));
+    }
     return successResponse({ message: 'Đăng xuất thành công' });
   },
 

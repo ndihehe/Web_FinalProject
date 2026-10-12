@@ -36,8 +36,17 @@ export default function TicketDetailScreen() {
   const [moviesMap, setMoviesMap] = useState({});
 
   useEffect(() => {
-    cinemaService.getUserProfile().then((res) => setCurrentUser(res?.data)).catch(() => {});
-  }, []);
+    const fetchUser = () => {
+      cinemaService.getUserProfile().then((res) => setCurrentUser(res?.data)).catch(() => setCurrentUser(null));
+    };
+    fetchUser();
+    const handleAuthChange = () => {
+      fetchUser();
+      loadTicket();
+    };
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
+  }, [ticketId]);
 
   useEffect(() => {
     cinemaService.getMovies().then((res) => {

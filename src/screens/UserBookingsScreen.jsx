@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
+import { useAuthModal } from '../context/AuthModalContext';
 import FeatherIcon from '../components/FeatherIcon';
 
 const IconSend = () => (
@@ -17,6 +18,7 @@ const IconStar = ({ filled }) => (
 
 export default function UserBookingsScreen() {
   const { navigate } = useRouter();
+  const { openAuthModal } = useAuthModal();
   const [currentUser, setCurrentUser] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,19 @@ export default function UserBookingsScreen() {
   const [moviesMap, setMoviesMap] = useState({});
 
   useEffect(() => {
-    cinemaService.getUserProfile().then((res) => setCurrentUser(res?.data)).catch(() => {});
+    const fetchProfile = () => {
+      cinemaService.getUserProfile()
+        .then((res) => setCurrentUser(res?.data || null))
+        .catch(() => setCurrentUser(null));
+    };
+
+    fetchProfile();
+    const handleAuthChange = () => {
+      fetchProfile();
+      loadBookings();
+    };
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
   useEffect(() => {
@@ -60,6 +74,7 @@ export default function UserBookingsScreen() {
       setBookings(list);
     } catch (e) {
       console.error(e);
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -198,6 +213,13 @@ export default function UserBookingsScreen() {
           <div className="loading-state">
             <div className="spinner"></div>
             <p>Đang tải đơn đặt vé...</p>
+          </div>
+        ) : !currentUser ? (
+          <div className="empty-state">
+            <FeatherIcon name="lock" size={48} />
+            <h3>Bạn chưa đăng nhập</h3>
+            <p>Vui lòng đăng nhập để xem thông tin vé và lịch sử đơn hàng của bạn.</p>
+            <button className="btn-movie-book" onClick={() => openAuthModal('login')}>Đăng nhập ngay</button>
           </div>
         ) : filteredBookings.length === 0 ? (
           <div className="empty-state">

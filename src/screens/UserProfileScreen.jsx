@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
+import { useAuthModal } from '../context/AuthModalContext';
 import FeatherIcon from '../components/FeatherIcon';
 
 export default function UserProfileScreen() {
   const { navigate } = useRouter();
+  const { openAuthModal } = useAuthModal();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password'
@@ -27,6 +29,9 @@ export default function UserProfileScreen() {
 
   useEffect(() => {
     loadProfile();
+    const handleAuthChange = () => loadProfile();
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
   const loadProfile = async () => {
@@ -39,6 +44,7 @@ export default function UserProfileScreen() {
       setDateOfBirth(res.data.dateOfBirth || '');
     } catch (e) {
       console.error(e);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -103,6 +109,25 @@ export default function UserProfileScreen() {
       <div className="page-container loading-container">
         <div className="spinner"></div>
         <p>Đang tải thông tin tài khoản...</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="page-container user-profile-screen">
+        <div className="container">
+          <div className="empty-state auth-empty-prompt" style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <FeatherIcon name="lock" size={48} />
+            <h3 style={{ marginTop: '16px', fontSize: '20px', color: '#fff' }}>Bạn chưa đăng nhập</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '12px 0 24px' }}>
+              Vui lòng đăng nhập để xem và quản lý hồ sơ tài khoản của bạn.
+            </p>
+            <button className="btn-movie-book" onClick={() => openAuthModal('login')}>
+              Đăng nhập ngay
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

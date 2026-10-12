@@ -45,6 +45,7 @@ export function LoginScreen({ onClose }) {
     setErrorMsg('');
     try {
       await cinemaService.login({ email, password });
+      window.dispatchEvent(new Event('auth-changed'));
       if (onClose) {
         onClose();
       } else {
@@ -61,6 +62,7 @@ export function LoginScreen({ onClose }) {
     alert(`Đăng nhập nhanh bằng ${provider} thành công!`);
     cinemaService.login({ email: `user.${provider.toLowerCase()}@betacinema.vn`, password: 'password123' })
       .then(() => {
+        window.dispatchEvent(new Event('auth-changed'));
         if (onClose) onClose();
         else navigate('/');
       })
@@ -183,6 +185,7 @@ export function RegisterScreen({ onClose }) {
     setErrorMsg('');
     try {
       await cinemaService.register({ fullName, email, phone, password, confirmPassword });
+      window.dispatchEvent(new Event('auth-changed'));
       alert('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (err) {

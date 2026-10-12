@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
+import { useAuthModal } from '../context/AuthModalContext';
 import FeatherIcon from '../components/FeatherIcon';
 
 export default function WalletScreen() {
   const { navigate } = useRouter();
+  const { openAuthModal } = useAuthModal();
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +17,9 @@ export default function WalletScreen() {
 
   useEffect(() => {
     loadWalletData();
+    const handleAuthChange = () => loadWalletData();
+    window.addEventListener('auth-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
   const loadWalletData = async () => {
@@ -24,10 +29,12 @@ export default function WalletScreen() {
         cinemaService.getWallet(),
         cinemaService.getWalletTransactions()
       ]);
-      setWallet(wRes?.data || {});
+      setWallet(wRes?.data || null);
       setTransactions(Array.isArray(txRes?.data) ? txRes.data : (txRes?.data?.items || []));
     } catch (e) {
       console.error(e);
+      setWallet(null);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -52,6 +59,25 @@ export default function WalletScreen() {
   };
 
   const presetAmounts = [50000, 100000, 200000, 500000, 1000000];
+
+  if (!loading && !wallet) {
+    return (
+      <div className="page-container wallet-screen">
+        <div className="container">
+          <div className="empty-state auth-empty-prompt" style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <FeatherIcon name="lock" size={48} />
+            <h3 style={{ marginTop: '16px', fontSize: '20px', color: '#fff' }}>Bạn chưa đăng nhập</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '12px 0 24px' }}>
+              Vui lòng đăng nhập để truy cập và sử dụng Ví Cinema.
+            </p>
+            <button className="btn-movie-book" onClick={() => openAuthModal('login')}>
+              Đăng nhập ngay
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container wallet-screen">

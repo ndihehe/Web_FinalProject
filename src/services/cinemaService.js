@@ -1123,6 +1123,26 @@ async function apiFetch(endpoint, { method = 'GET', body = null, params = null, 
   return successResponse(data);
 }
 
+function normalizeProduct(p) {
+  if (!p || typeof p !== 'object') return p;
+  const price = Number(p.price !== undefined ? p.price : (p.unitPrice !== undefined ? p.unitPrice : 0));
+  const id = p.productId !== undefined ? p.productId : p.id;
+  const name = p.productName || p.name || 'Sản phẩm F&B';
+  return {
+    ...p,
+    id,
+    productId: id,
+    name,
+    productName: name,
+    price,
+    unitPrice: price,
+    description: p.description || '',
+    category: p.category || 'Combo',
+    imageUrl: p.imageUrl || p.image_url || '/images/aovis/cinema1.jpg',
+    status: p.status || 'AVAILABLE'
+  };
+}
+
 function normalizeBookingData(raw) {
   if (!raw || typeof raw !== 'object') return raw;
   const b = { ...raw };
@@ -1152,21 +1172,27 @@ function normalizeBookingData(raw) {
   // 4. Map showtime <-> showTime
   if (!b.showtime && b.showTime) {
     b.showtime = {
-      id: b.showTime.showTimeId || b.showTime.id,
-      showtimeId: b.showTime.showTimeId || b.showTime.id,
-      movieId: b.showTime.movieId,
-      movieTitle: b.showTime.movieTitle,
-      cinemaId: b.showTime.cinemaId,
-      cinemaName: b.showTime.cinemaName,
-      roomName: b.showTime.roomName,
-      startsAt: b.showTime.startTime || b.showTime.startsAt,
-      startTime: b.showTime.startTime || b.showTime.startsAt
+      id: b.showTime.showTimeId || b.showTime.id || 0,
+      showtimeId: b.showTime.showTimeId || b.showTime.id || 0,
+      movieId: b.showTime.movieId || null,
+      movieTitle: b.showTime.movieTitle || 'Phim Beta Cinema',
+      cinemaId: b.showTime.cinemaId || null,
+      cinemaName: b.showTime.cinemaName || 'Beta Cinema',
+      roomName: b.showTime.roomName || 'Phòng Chiếu 1',
+      format: b.showTime.format || '2D Phụ Đề',
+      startsAt: b.showTime.startTime || b.showTime.startsAt || new Date().toISOString(),
+      startTime: b.showTime.startTime || b.showTime.startsAt || new Date().toISOString()
     };
   } else if (!b.showtime && b.showTimeId) {
     b.showtime = {
       id: b.showTimeId,
       showtimeId: b.showTimeId,
-      startsAt: b.holdExpiresAt || b.expiresAt
+      movieTitle: 'Phim Beta Cinema',
+      cinemaName: 'Beta Cinema',
+      roomName: 'Phòng Chiếu 1',
+      format: '2D Phụ Đề',
+      startsAt: b.holdExpiresAt || b.expiresAt || new Date().toISOString(),
+      startTime: b.holdExpiresAt || b.expiresAt || new Date().toISOString()
     };
   }
   if (b.showtime && !b.showTime) {
@@ -1179,17 +1205,37 @@ function normalizeBookingData(raw) {
     if (!b.showtime.startTime && b.showtime.startsAt) {
       b.showtime.startTime = b.showtime.startsAt;
     }
+    b.showtime.movieTitle = b.showtime.movieTitle || 'Phim Beta Cinema';
+    b.showtime.cinemaName = b.showtime.cinemaName || 'Beta Cinema';
+    b.showtime.roomName = b.showtime.roomName || 'Phòng Chiếu 1';
+    b.showtime.format = b.showtime.format || '2D Phụ Đề';
   }
 
   // 5. Map fnbItems <-> products
   if ((!b.fnbItems || b.fnbItems.length === 0) && Array.isArray(b.products)) {
-    b.fnbItems = b.products.map((p) => ({
-      productId: p.productId || p.id,
-      name: p.name || p.productName || 'F&B Item',
-      quantity: p.quantity,
-      unitPrice: p.price || p.unitPrice || 0,
-      lineTotal: ((p.price || p.unitPrice || 0) * (p.quantity || 1))
-    }));
+    b.fnbItems = b.products.map((p) => {
+      const normalizedP = normalizeProduct(p);
+      return {
+        productId: normalizedP.id,
+        name: normalizedP.name,
+        quantity: p.quantity || 1,
+        unitPrice: normalizedP.unitPrice,
+        lineTotal: normalizedP.unitPrice * (p.quantity || 1)
+      };
+    });
+  } else if (Array.isArray(b.fnbItems)) {
+    b.fnbItems = b.fnbItems.map((item) => {
+      const unitPrice = Number(item.unitPrice !== undefined ? item.unitPrice : (item.price !== undefined ? item.price : 0));
+      const qty = item.quantity || 1;
+      return {
+        ...item,
+        productId: item.productId !== undefined ? item.productId : item.id,
+        name: item.name || item.productName || 'F&B Item',
+        quantity: qty,
+        unitPrice,
+        lineTotal: Number(item.lineTotal !== undefined ? item.lineTotal : unitPrice * qty)
+      };
+    });
   }
 
   // 6. Map seats: array of strings ["H08", "H09"] or seatIds -> objects with label
@@ -1209,29 +1255,43 @@ function normalizeBookingData(raw) {
       unitPrice: 0
     }));
     b.seatLabels = b.seats.map((s) => s.label);
+  } else if (Array.isArray(b.seats)) {
+    b.seats = b.seats.map((s) => ({
+      ...s,
+      seatId: s.seatId !== undefined ? s.seatId : (s.id || s.label),
+      label: s.label || `Ghế #${s.seatId || s.id || ''}`,
+      type: s.type || 'STANDARD',
+      unitPrice: Number(s.unitPrice || s.price || 0)
+    }));
+    b.seatLabels = b.seats.map((s) => s.label);
   }
 
   // 7. Map voucher applied
   if (b.voucherApplied && !b.voucher) {
     b.voucher = {
       code: b.voucherApplied,
-      discountAmount: b.discountAmount || 0
+      discountAmount: Number(b.discountAmount || 0)
     };
   }
-  if (b.finalAmount !== undefined && b.totalAmount === undefined) {
-    b.totalAmount = b.finalAmount;
-  }
+  b.totalAmount = Number(b.totalAmount !== undefined ? b.totalAmount : (b.finalAmount !== undefined ? b.finalAmount : 0));
+  b.discountAmount = Number(b.discountAmount || 0);
 
   // 8. Calculations for subtotal, fnbSubtotal, ticketSubtotal
   if (b.fnbSubtotal === undefined) {
-    b.fnbSubtotal = (b.fnbItems || []).reduce((sum, item) => sum + (item.lineTotal || (item.unitPrice * item.quantity) || 0), 0);
+    b.fnbSubtotal = (b.fnbItems || []).reduce((sum, item) => sum + Number(item.lineTotal || (item.unitPrice * item.quantity) || 0), 0);
   }
-  if (b.ticketSubtotal === undefined && b.totalAmount !== undefined) {
-    b.ticketSubtotal = Math.max(0, (b.totalAmount || 0) - (b.fnbSubtotal || 0) + (b.discountAmount || 0));
+  b.fnbSubtotal = Number(b.fnbSubtotal || 0);
+
+  if (b.ticketSubtotal === undefined) {
+    b.ticketSubtotal = Math.max(0, b.totalAmount - b.fnbSubtotal + b.discountAmount);
   }
+  b.ticketSubtotal = Number(b.ticketSubtotal || 0);
+
   if (b.subtotal === undefined) {
-    b.subtotal = (b.ticketSubtotal || 0) + (b.fnbSubtotal || 0);
+    b.subtotal = b.ticketSubtotal + b.fnbSubtotal;
   }
+  b.subtotal = Number(b.subtotal || 0);
+
   if (b.version === undefined) {
     b.version = 0;
   }
@@ -1667,12 +1727,20 @@ export const cinemaService = {
   // 11. GET /products (Danh sách bắp nước theo rạp)
   async getProducts(cinemaId, { type = '', page = 0, size = 50 } = {}) {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/products', { params: { category: type || undefined, status: 'AVAILABLE', page, size } })
+      const res = await apiFetch('/products', { params: { category: type || undefined, status: 'AVAILABLE', page, size } })
         .catch(() => apiFetch('/product', { params: { cinemaId, type, page, size } }));
+      if (res && res.data) {
+        if (Array.isArray(res.data)) {
+          res.data = res.data.map(normalizeProduct);
+        } else if (Array.isArray(res.data.items)) {
+          res.data.items = res.data.items.map(normalizeProduct);
+        }
+      }
+      return res;
     }
     await delay();
     const state = getState();
-    const list = state.products.filter((p) => p.cinemaId === cinemaId || !p.cinemaId);
+    const list = state.products.filter((p) => p.cinemaId === cinemaId || !p.cinemaId).map(normalizeProduct);
     return successResponse(list, { page: 0, size: list.length, totalElements: list.length, totalPages: 1 });
   },
 
@@ -1946,11 +2014,14 @@ export const cinemaService = {
     return successResponse(booking);
   },
 
-  // 17. POST /booking/{id}/payment (Thanh toán đơn bằng Ví hoặc Cổng)
+  // 17. POST /bookings/{id}/payment (Thanh toán đơn bằng Ví hoặc Cổng)
   async createPayment(id, { method = 'WALLET', expectedVersion } = {}, idempotencyKey = null) {
     if (IS_REAL_API_MODE) {
       const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
-      return apiFetch('/booking/' + id + '/payment', { method: 'POST', body: { method, expectedVersion }, headers });
+      const numericId = typeof id === 'string' ? (parseInt(id.replace(/\D/g, ''), 10) || id) : id;
+      const apiMethod = method === 'GATEWAY' ? 'VNPAY' : method;
+      return apiFetch('/bookings/' + numericId + '/payment', { method: 'POST', body: { method: apiMethod }, headers })
+        .catch(() => apiFetch('/booking/' + id + '/payment', { method: 'POST', body: { method: apiMethod, expectedVersion }, headers }));
     }
     await delay();
     const state = getState();
@@ -2211,7 +2282,9 @@ export const cinemaService = {
   // 22. GET /wallet (Số dư ví)
   async getWallet() {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/wallet');
+      return apiFetch('/wallet')
+        .catch(() => apiFetch('/user/wallet'))
+        .catch(() => successResponse({ balance: 0, status: 'INACTIVE', currency: 'VND' }));
     }
     await delay();
     const state = getState();

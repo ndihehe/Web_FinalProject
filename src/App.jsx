@@ -18,6 +18,7 @@ import UserProfileScreen from './screens/UserProfileScreen';
 import { AuthModalProvider, useAuthModal } from './context/AuthModalContext';
 import AuthModal from './components/AuthModal';
 import MobileBottomNav from './components/MobileBottomNav';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const { path, segments } = useRouter();
@@ -257,7 +258,9 @@ function AppContent() {
     <div className="app-layout">
       <Header />
       <main className="main-content-wrapper">
-        {renderScreen()}
+        <ErrorBoundary key={path}>
+          {renderScreen()}
+        </ErrorBoundary>
       </main>
       <Footer />
       {/* Global Auth Modal Popup (Thẻ đăng nhập nổi trên màn hình) */}

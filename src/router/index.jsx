@@ -4,7 +4,7 @@ const RouterContext = createContext({
   path: '/',
   params: {},
   queryParams: {},
-  navigate: () => {}
+  navigate: () => { }
 });
 
 export function useRouter() {
@@ -42,7 +42,7 @@ export function RouterProvider({ children }) {
       const initial = '#' + window.location.pathname + window.location.search;
       try {
         window.history.replaceState(null, '', initial);
-      } catch (_) {}
+      } catch (_) { }
       return initial;
     }
     return '#/';

@@ -32,18 +32,23 @@ export default function BookingCheckoutScreen() {
       const bData = res.data;
       setBooking(bData);
 
-      // Tải song song: bắp nước, ví, chi tiết phim và kho voucher
-      const [prodRes, walletRes, movieRes, vouchersRes] = await Promise.all([
-        cinemaService.getProducts(bData.showtime?.cinemaId),
-        cinemaService.getWallet(),
-        cinemaService.getMovieDetail(bData.showtime?.movieId).catch(() => ({ data: null })),
+      // Tải song song: bắp nước, ví, chi tiết phim và kho voucher độc lập, an toàn
+      const [prodRes, walletRes, movieRes, vouchersRes] = await Promise.allSettled([
+        cinemaService.getProducts(bData?.showtime?.cinemaId).catch(() => ({ data: [] })),
+        cinemaService.getWallet().catch(() => ({ data: { balance: 0 } })),
+        cinemaService.getMovieDetail(bData?.showtime?.movieId).catch(() => ({ data: null })),
         cinemaService.getUserVouchers().catch(() => ({ data: [] }))
       ]);
 
-      setProducts(Array.isArray(prodRes?.data) ? prodRes.data : (prodRes?.data?.items || []));
-      setWallet(walletRes?.data || {});
-      setMovie(movieRes?.data || null);
-      setAvailableVouchers(Array.isArray(vouchersRes?.data) ? vouchersRes.data : (vouchersRes?.data?.items || []));
+      const pData = prodRes.status === 'fulfilled' ? prodRes.value?.data : [];
+      const wData = walletRes.status === 'fulfilled' ? walletRes.value?.data : { balance: 0 };
+      const mData = movieRes.status === 'fulfilled' ? movieRes.value?.data : null;
+      const vData = vouchersRes.status === 'fulfilled' ? vouchersRes.value?.data : [];
+
+      setProducts(Array.isArray(pData) ? pData : (pData?.items || []));
+      setWallet(wData || { balance: 0 });
+      setMovie(mData || null);
+      setAvailableVouchers(Array.isArray(vData) ? vData : (vData?.items || []));
     } catch (e) {
       console.error(e);
       setErrorMsg(e.message || 'Không thể tải thông tin đơn hàng');
@@ -209,6 +214,10 @@ export default function BookingCheckoutScreen() {
     return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
   };
 
+  const formatCurrency = (amount) => {
+    return (Number(amount) || 0).toLocaleString('vi-VN');
+  };
+
   const isExpired = booking.status === 'EXPIRED';
   const isCancelled = booking.status === 'CANCELLED';
   const isPaid = booking.status === 'PAID';
@@ -226,9 +235,14 @@ export default function BookingCheckoutScreen() {
         <div className="breadcrumb-nav">
           <span className="breadcrumb-link" onClick={() => navigate('/')}>Trang chủ</span>
           <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-link" onClick={() => navigate(`/movie/${booking.showtime.movieId}`)}>{booking.showtime.movieTitle}</span>
+          <span
+            className="breadcrumb-link"
+            onClick={() => booking.showtime?.movieId ? navigate(`/movie/${booking.showtime.movieId}`) : navigate('/movie')}
+          >
+            {booking.showtime?.movieTitle || 'Danh sách phim'}
+          </span>
           <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">Thanh toán vé #{booking.id}</span>
+          <span className="breadcrumb-current">Thanh toán vé #{booking.id || booking.bookingId}</span>
           {booking.status === 'PENDING_PAYMENT' && (
             <button
               type="button"
@@ -328,14 +342,17 @@ export default function BookingCheckoutScreen() {
             <div className="ticket-info-col">
               <div className="ticket-year font-chinese">{releaseYear}</div>
               <h1 className="ticket-movie-title">
-                {booking.showtime.movieTitle.includes(':') ? (
-                  <>
-                    <span className="main-title font-chinese">{booking.showtime.movieTitle.split(':')[0].trim().toUpperCase()}</span>
-                    <span className="sub-title">{booking.showtime.movieTitle.split(':')[1].trim()}</span>
-                  </>
-                ) : (
-                  <span className="main-title font-chinese">{booking.showtime.movieTitle.toUpperCase()}</span>
-                )}
+                {(() => {
+                  const titleStr = booking.showtime?.movieTitle || 'PHIM BETA CINEMA';
+                  return titleStr.includes(':') ? (
+                    <>
+                      <span className="main-title font-chinese">{titleStr.split(':')[0].trim().toUpperCase()}</span>
+                      <span className="sub-title">{titleStr.split(':')[1].trim()}</span>
+                    </>
+                  ) : (
+                    <span className="main-title font-chinese">{titleStr.toUpperCase()}</span>
+                  );
+                })()}
               </h1>
 
               <div className="ticket-meta-strip font-chinese">
@@ -355,7 +372,7 @@ export default function BookingCheckoutScreen() {
               <div className="ticket-selectors-row">
                 <div className="picker-seats-count font-chinese">
                   <span className="picker-label font-chinese">SO LUONG VE</span>
-                  <span className="picker-value font-chinese">{booking.seats.length} GHE</span>
+                  <span className="picker-value font-chinese">{booking.seats?.length || 0} GHE</span>
                 </div>
 
                 <div className="picker-seats-count font-chinese">
@@ -373,7 +390,7 @@ export default function BookingCheckoutScreen() {
                 <div className="picker-seats-count font-chinese">
                   <span className="picker-label font-chinese">DINH DANG</span>
                   <span className="picker-value font-chinese">
-                    {booking.showtime.format?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()}
+                    {((booking.showtime?.format || '2D')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -387,7 +404,7 @@ export default function BookingCheckoutScreen() {
               <div className="grid-cell-val font-chinese spotlight-text">
                 <FeatherIcon name="map-pin" size={16} className="cell-icon" />
                 <span className="font-chinese">
-                  {booking.showtime.cinemaName?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()}
+                  {((booking.showtime?.cinemaName || 'BETA CINEMA')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()}
                 </span>
               </div>
             </div>
@@ -408,8 +425,8 @@ export default function BookingCheckoutScreen() {
                 <FeatherIcon name="monitor" size={16} className="cell-icon" />
                 <span className="font-chinese">
                   {(() => {
-                    const cleanRoom = booking.showtime.roomName?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase() || '';
-                    const cleanFormat = booking.showtime.format?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase() || '';
+                    const cleanRoom = ((booking.showtime?.roomName || 'PHONG CHIEU 1')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase();
+                    const cleanFormat = ((booking.showtime?.format || '2D')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase();
                     return cleanRoom.includes('(') ? cleanRoom : `${cleanRoom} (${cleanFormat})`;
                   })()}
                 </span>
@@ -419,9 +436,9 @@ export default function BookingCheckoutScreen() {
             <div className="grid-cell">
               <span className="grid-cell-label font-chinese">VI TRI GHE / SEATS</span>
               <div className="grid-cell-val highlight-seats font-chinese">
-                {booking.seats.map((s) => (
-                  <span key={s.seatId} className="seat-badge-pill font-chinese">
-                    {s.label} ({s.type?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()})
+                {(booking.seats || []).map((s) => (
+                  <span key={s.seatId || s.id || s.label} className="seat-badge-pill font-chinese">
+                    {s.label} ({((s.type || 'STANDARD')).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase()})
                   </span>
                 ))}
               </div>
@@ -442,22 +459,24 @@ export default function BookingCheckoutScreen() {
 
             <div className="fnb-menu-list">
               {products.map((prod) => {
-                const existingItem = booking.fnbItems.find((i) => i.productId === prod.id);
+                const prodId = prod.id || prod.productId;
+                const existingItem = (booking.fnbItems || []).find((i) => (i.productId || i.id) === prodId);
                 const qty = existingItem ? existingItem.quantity : 0;
+                const prodPrice = prod.unitPrice !== undefined ? prod.unitPrice : (prod.price || 0);
 
                 return (
-                  <div key={prod.id} className="fnb-menu-item">
+                  <div key={prodId} className="fnb-menu-item">
                     <div className="fnb-menu-info">
-                      <span className="fnb-item-name spotlight-text">{prod.name}</span>
+                      <span className="fnb-item-name spotlight-text">{prod.name || prod.productName}</span>
                       <span className="fnb-item-desc">{prod.description}</span>
-                      <span className="fnb-item-price font-chinese">{prod.unitPrice.toLocaleString('vi-VN')} đ</span>
+                      <span className="fnb-item-price font-chinese">{formatCurrency(prodPrice)} đ</span>
                     </div>
 
                     <div className="fnb-qty-counter">
                       <button
                         className="counter-btn"
                         disabled={qty <= 0 || isExpired || isCancelled || isPaid}
-                        onClick={() => handleUpdateFnbQuantity(prod.id, -1)}
+                        onClick={() => handleUpdateFnbQuantity(prodId, -1)}
                       >
                         -
                       </button>
@@ -465,7 +484,7 @@ export default function BookingCheckoutScreen() {
                       <button
                         className="counter-btn"
                         disabled={qty >= 10 || isExpired || isCancelled || isPaid}
-                        onClick={() => handleUpdateFnbQuantity(prod.id, 1)}
+                        onClick={() => handleUpdateFnbQuantity(prodId, 1)}
                       >
                         +
                       </button>
@@ -492,21 +511,21 @@ export default function BookingCheckoutScreen() {
                 <div className="voucher-stubs-grid">
                   {availableVouchers.map((v) => {
                     const isApplied = booking.voucher && booking.voucher.code.toUpperCase() === v.code.toUpperCase();
-                    const isEligible = booking.subtotal >= v.minOrderAmount;
+                    const isEligible = (booking.subtotal || 0) >= (v.minOrderAmount || 0);
 
                     return (
                       <div
-                        key={v.id}
+                        key={v.id || v.code}
                         className={`voucher-stub-item ${isApplied ? 'applied' : ''} ${!isEligible ? 'ineligible' : ''}`}
                       >
                         <div className="stub-ribbon font-chinese">
-                          {v.discountType === 'FIXED' ? `-${v.discountValue / 1000}K` : `-${v.discountValue}%`}
+                          {v.discountType === 'FIXED' ? `-${(v.discountValue || 0) / 1000}K` : `-${v.discountValue}%`}
                         </div>
                         <div className="stub-body">
                           <strong className="stub-code font-chinese">{v.code}</strong>
                           <p className="stub-desc">{v.description}</p>
                           <div className="stub-condition">
-                            Đơn tối thiểu: {v.minOrderAmount.toLocaleString('vi-VN')} đ
+                            Đơn tối thiểu: {formatCurrency(v.minOrderAmount)} đ
                           </div>
                         </div>
 
@@ -566,10 +585,10 @@ export default function BookingCheckoutScreen() {
 
                 <div className="wallet-balance-row">
                   <span>Số dư hiện tại:</span>
-                  <strong className="balance-highlight font-chinese">{wallet ? wallet.balance.toLocaleString('vi-VN') : 0} đ</strong>
+                  <strong className="balance-highlight font-chinese">{formatCurrency(wallet?.balance || 0)} đ</strong>
                 </div>
 
-                {wallet && wallet.balance < booking.totalAmount && (
+                {wallet && (wallet.balance || 0) < (booking.totalAmount || 0) && (
                   <div className="wallet-shortage-alert">
                     <FeatherIcon name="alert-circle" size={14} />
                     <span>Số dư không đủ. Vui lòng nạp thêm hoặc chọn Cổng thanh toán.</span>
@@ -597,23 +616,23 @@ export default function BookingCheckoutScreen() {
             {/* BẢNG TỔNG TIỀN THANH TOÁN SANG TRỌNG */}
             <div className="checkout-summary-receipt">
               <div className="receipt-line">
-                <span>Tiền vé ({booking.seats.length} ghế):</span>
-                <span className="receipt-val font-chinese">{booking.ticketSubtotal.toLocaleString('vi-VN')} đ</span>
+                <span>Tiền vé ({booking.seats?.length || 0} ghế):</span>
+                <span className="receipt-val font-chinese">{formatCurrency(booking.ticketSubtotal)} đ</span>
               </div>
               <div className="receipt-line">
                 <span>Combo bắp nước F&B:</span>
-                <span className="receipt-val font-chinese">{booking.fnbSubtotal.toLocaleString('vi-VN')} đ</span>
+                <span className="receipt-val font-chinese">{formatCurrency(booking.fnbSubtotal)} đ</span>
               </div>
-              {booking.discountAmount > 0 && (
+              {Number(booking.discountAmount || 0) > 0 && (
                 <div className="receipt-line discount">
                   <span>Khuyến mãi Voucher:</span>
-                  <span className="receipt-val font-chinese">-{booking.discountAmount.toLocaleString('vi-VN')} đ</span>
+                  <span className="receipt-val font-chinese">-{formatCurrency(booking.discountAmount)} đ</span>
                 </div>
               )}
               <div className="receipt-divider"></div>
               <div className="receipt-line total">
                 <span className="total-title font-chinese">TỔNG THANH TOÁN:</span>
-                <span className="total-amount-val font-chinese">{booking.totalAmount.toLocaleString('vi-VN')} đ</span>
+                <span className="total-amount-val font-chinese">{formatCurrency(booking.totalAmount)} đ</span>
               </div>
             </div>
 

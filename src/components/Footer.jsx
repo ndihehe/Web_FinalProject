@@ -9,13 +9,12 @@ export default function Footer() {
       style={{
         background: 'var(--bg-secondary, #0b0d14)',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        padding: '46px 20px 34px',
+        padding: '36px 20px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        textAlign: 'center',
-        gap: '12px'
+        textAlign: 'center'
       }}
     >
       {/* Logo web to nằm chính giữa thanh */}
@@ -52,18 +51,6 @@ export default function Footer() {
         >
           CINEMA
         </span>
-      </div>
-
-      {/* Dòng bản quyền tinh tế bên dưới */}
-      <div
-        style={{
-          fontSize: '13px',
-          color: 'rgba(255, 255, 255, 0.45)',
-          letterSpacing: '0.4px',
-          marginTop: '4px'
-        }}
-      >
-        © {new Date().getFullYear()} TDTDT Cinema. Toàn quyền sở hữu. Hệ thống rạp chiếu phim hàng đầu.
       </div>
     </footer>
   );

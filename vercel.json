@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/cinema/api/:path*",
+      "destination": "https://be-cinema.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://be-cinema.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

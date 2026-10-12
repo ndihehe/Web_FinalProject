@@ -56,7 +56,7 @@ export function useSeatWebSocket(showtimeId, onSeatStatusChange) {
     try {
       const baseUrl = getWebSocketBaseUrl();
       const token = getAccessToken();
-      const myUserId = currentUserId ? String(currentUserId) : parseUserIdFromToken(token);
+      const myUserId = parseUserIdFromToken(token);
       const wsUrl = token ? `${baseUrl}/${showtimeId}?token=${encodeURIComponent(token)}` : `${baseUrl}/${showtimeId}`;
 
       const ws = new WebSocket(wsUrl);
@@ -142,7 +142,7 @@ export function useSeatWebSocket(showtimeId, onSeatStatusChange) {
     } catch (err) {
       console.warn('Không thể khởi tạo WebSocket:', err);
     }
-  }, [showtimeId, currentUserId]);
+  }, [showtimeId]);
 
   useEffect(() => {
     connect();

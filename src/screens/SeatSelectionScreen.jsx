@@ -130,7 +130,7 @@ export default function SeatSelectionScreen() {
     );
   }
 
-  if (!seatMapData) {
+  if (!seatMapData || !seatMapData.showtime || !Array.isArray(seatMapData.seats)) {
     return (
       <div className="page-container empty-container">
         <h2>Không tìm thấy dữ liệu suất chiếu</h2>
@@ -241,11 +241,11 @@ export default function SeatSelectionScreen() {
         <div className="seat-legend-row">
           <div className="legend-item">
             <span className="legend-sample standard"></span>
-            <span>Ghế Thường ({showtime.minTicketPrice.toLocaleString('vi-VN')}đ)</span>
+            <span>Ghế Thường ({((showtime.minTicketPrice || 90000)).toLocaleString('vi-VN')}đ)</span>
           </div>
           <div className="legend-item">
             <span className="legend-sample vip"></span>
-            <span>Ghế VIP ({(showtime.minTicketPrice + 20000).toLocaleString('vi-VN')}đ)</span>
+            <span>Ghế VIP ({((showtime.minTicketPrice || 90000) + 20000).toLocaleString('vi-VN')}đ)</span>
           </div>
           <div className="legend-item">
             <span className="legend-sample selected"></span>

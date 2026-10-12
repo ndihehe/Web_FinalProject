@@ -14,10 +14,6 @@ export default function SeatSelectionScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Lấy ID người dùng hiện tại
-  const currentUser = cinemaService.getCurrentUser ? cinemaService.getCurrentUser() : null;
-  const currentUserId = currentUser?.id || null;
-
   // Khởi tạo kết nối Real-time WebSocket
   const {
     holdingSeatIds,
@@ -25,7 +21,7 @@ export default function SeatSelectionScreen() {
     socketError,
     sendHoldSeat,
     sendReleaseSeat
-  } = useSeatWebSocket(showtimeId, currentUserId);
+  } = useSeatWebSocket(showtimeId);
 
   useEffect(() => {
     if (!showtimeId) return;

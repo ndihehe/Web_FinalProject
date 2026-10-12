@@ -24,12 +24,34 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
     return '';
   };
 
+  // Giải mã userId trực tiếp từ JWT Access Token
+  const parseUserIdFromToken = (tok) => {
+    if (!tok) return null;
+    try {
+      const parts = tok.split('.');
+      if (parts.length >= 2) {
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const parsed = JSON.parse(jsonPayload);
+        return parsed.sub ? String(parsed.sub) : null;
+      }
+    } catch (_) {}
+    return null;
+  };
+
   const connect = useCallback(() => {
     if (!showtimeId) return;
 
     try {
       const baseUrl = getWebSocketBaseUrl();
       const token = getAccessToken();
+      const myUserId = currentUserId ? String(currentUserId) : parseUserIdFromToken(token);
       const wsUrl = token ? `${baseUrl}/${showtimeId}?token=${encodeURIComponent(token)}` : `${baseUrl}/${showtimeId}`;
 
       const ws = new WebSocket(wsUrl);
@@ -57,7 +79,7 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
           if (msg.type === 'INITIAL_STATE' && msg.holdingSeats) {
             const othersHolding = [];
             Object.entries(msg.holdingSeats).forEach(([sId, uId]) => {
-              if (String(uId) !== String(currentUserId)) {
+              if (String(uId) !== String(myUserId)) {
                 othersHolding.push(Number(sId));
               }
             });
@@ -71,7 +93,7 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
 
             if (msg.status === 'HOLDING') {
               // Nếu người giữ là người khác -> Đổi ghế thành màu xám (disabled)
-              if (String(actionUserId) !== String(currentUserId)) {
+              if (String(actionUserId) !== String(myUserId)) {
                 setHoldingSeatIds((prev) => Array.from(new Set([...prev, targetSeatId])));
               }
             } else if (msg.status === 'AVAILABLE') {

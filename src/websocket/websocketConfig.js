@@ -14,5 +14,7 @@ export function getWebSocketBaseUrl() {
   }
 
   // Mặc định chạy máy Localhost (HTTP)
-  return 'ws://localhost:8080/ws/seats';
+  const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+  const contextPrefix = apiBase.startsWith('/cinema') ? '/cinema' : '';
+  return `ws://localhost:8080${contextPrefix}/ws/seats`;
 }

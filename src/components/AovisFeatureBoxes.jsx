@@ -29,22 +29,39 @@ export default function AovisFeatureBoxes() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Lấy danh sách phim mới nhất theo thời gian thực từ API CSDL
-        const res = await cinemaService.getMovies({ sort: 'releaseDate,desc', size: 10 });
+        // Lấy danh sách phim đầy đủ từ API CSDL theo thời gian thực
+        const res = await cinemaService.getMovies({ size: 50 });
         const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);
-        const validMovies = list.filter(
-          (m) => m.title && !m.title.includes('[TEST]') && !m.title.includes('[PAYMENT_TEST]')
+
+        // 1. Tự động lọc các phim hợp lệ trong CSDL:
+        // - Loại bỏ các bản ghi test
+        // - Bắt buộc phải có ngày phát hành (releaseDate) trong CSDL
+        // - Bắt buộc phải có ảnh thực tế (backdropUrl hoặc posterUrl) lưu trong CSDL
+        const validMovies = list.filter((m) => {
+          if (!m.title) return false;
+          const isTest = /test|payment_test/i.test(m.title);
+          const hasImage = Boolean(m.backdropUrl || m.posterUrl);
+          const hasReleaseDate = Boolean(m.releaseDate);
+          return !isTest && hasImage && hasReleaseDate;
+        });
+
+        // 2. Tự động sắp xếp theo ngày phát hành mới nhất giảm dần
+        // Bất kỳ khi nào có phim mới ra mắt được thêm vào CSDL, phim đó sẽ tự động nhảy lên đầu
+        const sortedByNewest = validMovies.sort(
+          (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
         );
 
-        if (validMovies.length > 0) {
-          const mapped = validMovies.slice(0, 3).map((m, idx) => ({
+        // 3. Lấy đúng 3 phim mới nhất ra rạp và tham chiếu ảnh 100% từ CSDL
+        if (sortedByNewest.length > 0) {
+          const mapped = sortedByNewest.slice(0, 3).map((m, idx) => ({
             id: m.id || m.movieId,
             tagLabel: idx === 0 ? 'MỚI CÔNG CHIẾU' : 'PHIM MỚI RA RẠP',
             title: m.title,
             durationMinutes: m.durationMinutes,
             ageRating: m.ageRating || 'P',
             releaseDate: m.releaseDate ? new Date(m.releaseDate).toLocaleDateString('vi-VN') : '',
-            backdropUrl: m.backdropUrl || m.posterUrl || '/images/aovis/witcher_banner.jpg'
+            // Tham chiếu trực tiếp URL ảnh từ CSDL của phim, không gán cứng link
+            backdropUrl: m.backdropUrl || m.posterUrl
           }));
           setNewMovies(mapped);
         } else {

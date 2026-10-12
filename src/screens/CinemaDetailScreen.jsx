@@ -64,14 +64,32 @@ export default function CinemaDetailScreen() {
       }
 
       const effectiveDate = dateOptions[0]?.fullDate;
-      const [cinRes, showRes, movieRes] = await Promise.all([
+      const weeklyShowtimePromises = dateOptions.map((d) =>
+        cinemaService.getCinemaShowtimes(resolvedId, { date: d.fullDate }).catch(() => ({ data: [] }))
+      );
+
+      const [cinRes, movieRes, ...weeklyShowResults] = await Promise.all([
         cinData ? Promise.resolve({ data: cinData }) : cinemaService.getCinemaDetail(resolvedId).catch(() => null),
-        cinemaService.getCinemaShowtimes(resolvedId, { date: effectiveDate }).catch(() => ({ data: [] })),
-        cinemaService.getMovies({ size: 10 }).catch(() => ({ data: [] }))
+        cinemaService.getMovies({ size: 20 }).catch(() => ({ data: [] })),
+        ...weeklyShowtimePromises
       ]);
+
+      const allMovies = Array.isArray(movieRes?.data) ? movieRes.data : (movieRes?.data?.items || []);
+      const todayShowtimes = Array.isArray(weeklyShowResults[0]?.data) ? weeklyShowResults[0].data : (weeklyShowResults[0]?.data?.items || []);
+
+      // Thu thập toàn bộ các suất chiếu trong tuần của rạp để tìm ra các phim thực sự chiếu tại rạp này
+      const allWeeklyShowtimes = weeklyShowResults.flatMap((res) =>
+        Array.isArray(res?.data) ? res.data : (res?.data?.items || [])
+      );
+
+      const cinemaMovieIds = new Set(allWeeklyShowtimes.map((st) => String(st.movieId || st.id)));
+
+      // Lọc: CHỈ giữ lại các phim thực sự có suất chiếu tại rạp này
+      const filteredMovies = allMovies.filter((m) => cinemaMovieIds.has(String(m.id)));
+
       setCinema(cinRes?.data || null);
-      setShowtimes(Array.isArray(showRes?.data) ? showRes.data : (showRes?.data?.items || []));
-      setNowShowingMovies(Array.isArray(movieRes?.data) ? movieRes.data : (movieRes?.data?.items || []));
+      setShowtimes(todayShowtimes);
+      setNowShowingMovies(filteredMovies);
     } catch (e) {
       console.error('Lỗi tải dữ liệu rạp:', e);
     } finally {
@@ -385,78 +403,84 @@ export default function CinemaDetailScreen() {
 
         <div className="container hall-content-container">
           <h2 className="hall-section-title font-sf-rounded spotlight-text">
-            Phim đang chiếu
+            Phim đang chiếu tại rạp
           </h2>
 
-          <div className="hall-carousel-wrapper">
-            {/* Nút lướt trái */}
-            <button
-              type="button"
-              className="carousel-nav-btn prev-btn font-sf-rounded"
-              onClick={() => scrollCarousel('left')}
-              title="Xem các phim trước"
-            >
-              <FeatherIcon name="chevron-left" size={20} />
-            </button>
+          {nowShowingMovies.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.6)' }} className="font-sf-rounded">
+              <p>Hiện tại rạp đang cập nhật lịch chiếu cho các phim mới trong tuần.</p>
+            </div>
+          ) : (
+            <div className="hall-carousel-wrapper">
+              {/* Nút lướt trái */}
+              <button
+                type="button"
+                className="carousel-nav-btn prev-btn font-sf-rounded"
+                onClick={() => scrollCarousel('left')}
+                title="Xem các phim trước"
+              >
+                <FeatherIcon name="chevron-left" size={20} />
+              </button>
 
-            {/* Danh sách phim trượt ngang */}
-            <div className="hall-movies-track" ref={carouselRef}>
-              {nowShowingMovies.map((m, idx) => (
-                <div
-                  key={m.id}
-                  className="hall-movie-card"
-                  onClick={() => setActiveTrailerMovie(m)}
-                  title={`Xem Trailer: ${m.title}`}
-                >
-                  <div className="hall-poster-box">
-                    <img
-                      src={m.posterUrl || '/images/aovis/movie1.jpg'}
-                      alt={m.title}
-                      className="hall-poster-img"
-                      onError={(e) => { e.target.src = '/images/aovis/movie1.jpg'; }}
-                    />
+              {/* Danh sách phim trượt ngang */}
+              <div className="hall-movies-track" ref={carouselRef}>
+                {nowShowingMovies.map((m, idx) => (
+                  <div
+                    key={m.id}
+                    className="hall-movie-card"
+                    onClick={() => setActiveTrailerMovie(m)}
+                    title={`Xem Trailer: ${m.title}`}
+                  >
+                    <div className="hall-poster-box">
+                      <img
+                        src={m.posterUrl || '/images/aovis/movie1.jpg'}
+                        alt={m.title}
+                        className="hall-poster-img"
+                        onError={(e) => { e.target.src = '/images/aovis/movie1.jpg'; }}
+                      />
 
-                    {/* Số thứ tự xếp hạng cỡ lớn góc dưới (1, 2, 3, 4, 5...) */}
-                    <span className="ranking-number-watermark font-sf-rounded">
-                      {idx + 1}
-                    </span>
+                      {/* Số thứ tự xếp hạng cỡ lớn góc dưới (1, 2, 3, 4, 5...) */}
+                      <span className="ranking-number-watermark font-sf-rounded">
+                        {idx + 1}
+                      </span>
 
-                    {/* Nút Play tròn xem Trailer */}
-                    <div className="hall-play-button-overlay">
-                      <div className="hall-play-circle">
-                        <FeatherIcon name="play" size={16} />
+                      {/* Nút Play tròn xem Trailer */}
+                      <div className="hall-play-button-overlay">
+                        <div className="hall-play-circle">
+                          <FeatherIcon name="play" size={16} />
+                        </div>
+                      </div>
+
+                      {/* Badges góc trên */}
+                      <div className="hall-top-badges">
+                        <span className="hall-age-tag font-sf-rounded">{m.ageRating}</span>
+                        {idx === 2 && <span className="hall-sneak-tag font-sf-rounded">SNEAKSHOW</span>}
+                        {idx === 0 && <span className="hall-presale-tag font-sf-rounded">ĐẶT TRƯỚC</span>}
                       </div>
                     </div>
 
-                    {/* Badges góc trên */}
-                    <div className="hall-top-badges">
-                      <span className="hall-age-tag font-sf-rounded">{m.ageRating}</span>
-                      {idx === 2 && <span className="hall-sneak-tag font-sf-rounded">SNEAKSHOW</span>}
-                      {idx === 0 && <span className="hall-presale-tag font-sf-rounded">ĐẶT TRƯỚC</span>}
+                    <div className="hall-movie-info">
+                      <h4 className="hall-movie-title font-sf-rounded">{m.title}</h4>
+                      <p className="hall-movie-genre font-sf-rounded">{m.genres?.join(', ')}</p>
+                      <div className="hall-movie-rating font-sf-rounded">
+                        <span>⭐ {m.averageRating || '9.6'}</span>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="hall-movie-info">
-                    <h4 className="hall-movie-title font-sf-rounded">{m.title}</h4>
-                    <p className="hall-movie-genre font-sf-rounded">{m.genres?.join(', ')}</p>
-                    <div className="hall-movie-rating font-sf-rounded">
-                      <span>⭐ {m.averageRating || '9.6'}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {/* Nút lướt phải */}
+              <button
+                type="button"
+                className="carousel-nav-btn next-btn font-sf-rounded"
+                onClick={() => scrollCarousel('right')}
+                title="Xem các phim tiếp theo"
+              >
+                <FeatherIcon name="chevron-right" size={20} />
+              </button>
             </div>
-
-            {/* Nút lướt phải */}
-            <button
-              type="button"
-              className="carousel-nav-btn next-btn font-sf-rounded"
-              onClick={() => scrollCarousel('right')}
-              title="Xem các phim tiếp theo"
-            >
-              <FeatherIcon name="chevron-right" size={20} />
-            </button>
-          </div>
+          )}
         </div>
       </section>
 

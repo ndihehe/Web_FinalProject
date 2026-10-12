@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
@@ -14,6 +14,25 @@ export default function SeatSelectionScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Cập nhật trạng thái ghế trên sơ đồ khi nhận tín hiệu BOOKED / AVAILABLE từ socket
+  const handleSeatStatusChange = useCallback((seatId, newStatus) => {
+    setSeatMapData((prev) => {
+      if (!prev || !prev.seats) return prev;
+      return {
+        ...prev,
+        seats: prev.seats.map((seat) => {
+          if (String(seat.id) === String(seatId)) {
+            return {
+              ...seat,
+              status: newStatus
+            };
+          }
+          return seat;
+        })
+      };
+    });
+  }, []);
+
   // Khởi tạo kết nối Real-time WebSocket
   const {
     holdingSeatIds,
@@ -21,7 +40,7 @@ export default function SeatSelectionScreen() {
     socketError,
     sendHoldSeat,
     sendReleaseSeat
-  } = useSeatWebSocket(showtimeId);
+  } = useSeatWebSocket(showtimeId, handleSeatStatusChange);
 
   useEffect(() => {
     if (!showtimeId) return;

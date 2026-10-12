@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getWebSocketBaseUrl } from './websocketConfig';
 
-export function useSeatWebSocket(showtimeId, currentUserId) {
+export function useSeatWebSocket(showtimeId, onSeatStatusChange) {
   const [holdingSeatIds, setHoldingSeatIds] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [socketError, setSocketError] = useState(null);
@@ -9,6 +9,11 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
   const wsRef = useRef(null);
   const pingTimerRef = useRef(null);
   const reconnectTimerRef = useRef(null);
+  const statusCallbackRef = useRef(onSeatStatusChange);
+
+  useEffect(() => {
+    statusCallbackRef.current = onSeatStatusChange;
+  }, [onSeatStatusChange]);
 
   // Lấy JWT token từ localStorage
   const getAccessToken = () => {
@@ -97,11 +102,17 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
                 setHoldingSeatIds((prev) => Array.from(new Set([...prev.map(String), targetSeatId])));
               }
             } else if (msg.status === 'AVAILABLE') {
-              // Ghế được nhả ra -> Cho phép chọn lại
+              // Ghế được nhả ra (do hủy đơn, hết hạn, hoặc nhả chọn) -> Cho phép chọn lại
               setHoldingSeatIds((prev) => prev.filter((id) => String(id) !== targetSeatId));
+              if (typeof statusCallbackRef.current === 'function') {
+                statusCallbackRef.current(targetSeatId, 'AVAILABLE');
+              }
             } else if (msg.status === 'BOOKED') {
-              // Ghế đã bán xong -> Loại khỏi danh sách giữ và chuyển hẳn thành đã bán
+              // Ghế đã tạo đơn thành công hoặc đã bán -> Loại khỏi danh sách giữ và chuyển hẳn thành đã đặt
               setHoldingSeatIds((prev) => prev.filter((id) => String(id) !== targetSeatId));
+              if (typeof statusCallbackRef.current === 'function') {
+                statusCallbackRef.current(targetSeatId, 'BOOKED');
+              }
             }
           }
 

@@ -417,7 +417,8 @@ export default function CinemaDetailScreen() {
                 type="button"
                 className="carousel-nav-btn prev-btn font-sf-rounded"
                 onClick={() => scrollCarousel('left')}
-                title="Xem các phim trước"
+                disabled={nowShowingMovies.length <= 5}
+                title={nowShowingMovies.length <= 5 ? "Đã hiển thị tất cả phim đang chiếu" : "Xem các phim trước"}
               >
                 <FeatherIcon name="chevron-left" size={20} />
               </button>
@@ -475,7 +476,8 @@ export default function CinemaDetailScreen() {
                 type="button"
                 className="carousel-nav-btn next-btn font-sf-rounded"
                 onClick={() => scrollCarousel('right')}
-                title="Xem các phim tiếp theo"
+                disabled={nowShowingMovies.length <= 5}
+                title={nowShowingMovies.length <= 5 ? "Đã hiển thị tất cả phim đang chiếu" : "Xem các phim tiếp theo"}
               >
                 <FeatherIcon name="chevron-right" size={20} />
               </button>

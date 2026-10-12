@@ -7509,18 +7509,24 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   position: relative;
   display: flex;
   align-items: center;
-  max-width: 1040px;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 10px;
+  gap: 16px;
 }
 
 .carousel-nav-btn {
-  position: absolute;
-  top: 42%;
-  transform: translateY(-50%);
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  transform: none;
   width: 44px !important;
   height: 44px !important;
   min-width: 44px !important;
+  flex-shrink: 0;
   border-radius: 50% !important;
   background: #ffffff !important;
   color: #0f172a !important;
@@ -7533,12 +7539,20 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   z-index: 20;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65) !important;
   transition: all 0.2s ease;
+  margin-top: -38px;
 }
 
-.carousel-nav-btn:hover {
+.carousel-nav-btn:hover:not(:disabled) {
   background: #ffffff !important;
-  transform: translateY(-50%) scale(1.12);
+  transform: scale(1.12);
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.85) !important;
+}
+
+.carousel-nav-btn:disabled {
+  opacity: 0.4 !important;
+  cursor: default !important;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
 }
 
 .carousel-nav-btn svg {
@@ -7547,12 +7561,11 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   height: 22px !important;
 }
 
-.prev-btn {
-  left: -22px;
-}
-
+.prev-btn,
 .next-btn {
-  right: -22px;
+  position: relative;
+  left: auto;
+  right: auto;
 }
 
 .hall-movies-track {
@@ -7561,9 +7574,11 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  padding: 10px 0 20px;
+  padding: 10px 4px 20px;
   scrollbar-width: none;
-  width: 100%;
+  width: fit-content;
+  max-width: min(1012px, calc(100vw - 140px));
+  flex: 0 1 auto;
 }
 
 .hall-movies-track::-webkit-scrollbar {
@@ -7718,6 +7733,34 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   font-size: 12.5px;
   font-weight: 700;
   color: #fbbf24;
+}
+
+@media (max-width: 640px) {
+  .hall-carousel-wrapper {
+    width: 100%;
+    padding: 0 4px;
+    gap: 8px;
+  }
+  .carousel-nav-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    margin-top: -30px;
+  }
+  .carousel-nav-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .hall-movies-track {
+    max-width: calc(100vw - 92px);
+    gap: 12px;
+  }
+  .hall-movie-card {
+    width: 145px;
+  }
+  .hall-poster-box {
+    height: 205px;
+  }
 }
 
 /* ==========================================================================

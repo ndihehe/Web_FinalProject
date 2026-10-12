@@ -24,7 +24,8 @@ export default function MoviesScreen() {
         status: selectedStatus
       });
       const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);
-      setMovies(list);
+      const validList = list.filter((m) => m.title && !/test|payment_test/i.test(m.title));
+      setMovies(validList);
     } catch (e) {
       console.error(e);
     } finally {

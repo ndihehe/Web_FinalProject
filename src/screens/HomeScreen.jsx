@@ -18,17 +18,26 @@ export default function HomeScreen() {
         if (res && res.data) {
           let moviesList = res.data.nowShowing || [];
           if (moviesList.length === 0) {
-            const allMovies = await cinemaService.getMovies({ size: 10 }).catch(() => null);
+            const allMovies = await cinemaService.getMovies({ size: 30 }).catch(() => null);
             moviesList = Array.isArray(allMovies?.data) ? allMovies.data : (allMovies?.data?.items || []);
           }
-          setNowShowing(moviesList);
+
+          // Lọc tự động các phim thật: loại bỏ phim test/rác và bắt buộc phải có posterUrl/backdropUrl lưu trong CSDL
+          const validMovies = moviesList.filter(
+            (m) => m.title && !/test/i.test(m.title) && Boolean(m.posterUrl || m.backdropUrl)
+          );
+
+          setNowShowing(validMovies);
 
           let cinemasList = res.data.featuredCinemas || [];
           if (cinemasList.length === 0) {
             const allCinemas = await cinemaService.getCinemas({ size: 10 }).catch(() => null);
             cinemasList = Array.isArray(allCinemas?.data) ? allCinemas.data : (allCinemas?.data?.items || []);
           }
-          setFeaturedCinemas(cinemasList);
+          const validCinemas = cinemasList.filter(
+            (c) => c.name && !/test/i.test(c.name)
+          );
+          setFeaturedCinemas(validCinemas);
         }
       } catch (err) {
         console.error('Lỗi tải dữ liệu trang chủ:', err);

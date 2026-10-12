@@ -170,15 +170,8 @@ export default function CinemaDetailScreen() {
               </p>
 
               <div className="cinema-brand-rating-row font-sf-rounded">
-                <div className="star-rating-box">
-                  <span className="stars-icons">⭐⭐⭐⭐⭐</span>
-                  <span className="rating-score">5.0</span>
-                </div>
-                <span className="rating-divider">•</span>
-                <span className="rating-count">👤 10.569 đánh giá</span>
-                <span className="rating-divider">•</span>
                 <span className="rating-address">
-                  📍 {cinema.address}
+                  {cinema.address}
                 </span>
               </div>
             </div>

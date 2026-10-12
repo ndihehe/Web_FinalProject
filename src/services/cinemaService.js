@@ -1676,7 +1676,7 @@ export const cinemaService = {
   async getSeatMap(showtimeId) {
     if (IS_REAL_API_MODE) {
       const numericId = typeof showtimeId === 'string' ? (parseInt(showtimeId.replace(/\D/g, ''), 10) || showtimeId) : showtimeId;
-      return apiFetch('/showtimes/' + numericId + '/seats').catch(() => apiFetch('/showtime/' + showtimeId + '/seat'));
+      return apiFetch('/showtimes/' + numericId + '/seats');
     }
     await delay();
     const state = getState();
@@ -1758,7 +1758,7 @@ export const cinemaService = {
           productItems: productItems || []
         },
         headers
-      }).catch(() => apiFetch('/booking', { method: 'POST', body: { showtimeId, seatIds }, headers }));
+      });
       if (res && res.data) {
         res.data = normalizeBookingData(res.data);
       }
@@ -1835,7 +1835,7 @@ export const cinemaService = {
   async getBookingDetail(id) {
     if (IS_REAL_API_MODE) {
       const numericId = typeof id === 'string' ? (parseInt(id.replace(/\D/g, ''), 10) || id) : id;
-      const res = await apiFetch('/bookings/' + numericId).catch(() => apiFetch('/booking/' + id));
+      const res = await apiFetch('/bookings/' + numericId);
       if (res && res.data) {
         res.data = normalizeBookingData(res.data);
       }
@@ -1867,7 +1867,7 @@ export const cinemaService = {
       const res = await apiFetch('/bookings/' + numericId + '/items', {
         method: 'PUT',
         body: { items: formattedItems }
-      }).catch(() => apiFetch('/booking/' + id + '/fnb', { method: 'PUT', body: { items, expectedVersion } }));
+      });
       if (res && res.data) {
         res.data = normalizeBookingData(res.data);
       }
@@ -1932,12 +1932,12 @@ export const cinemaService = {
         res = await apiFetch('/bookings/' + numericId + '/voucher', {
           method: 'PUT',
           body: { code }
-        }).catch(() => apiFetch('/booking/' + id + '/voucher', { method: 'PUT', body: { code, expectedVersion } }));
+        });
       } else {
         res = await apiFetch('/bookings/' + numericId + '/voucher', {
           method: 'PUT',
           body: { code: '' }
-        }).catch(() => apiFetch('/booking/' + id + '/voucher', { method: 'DELETE' }));
+        });
       }
       if (res && res.data) {
         res.data = normalizeBookingData(res.data);
@@ -1990,7 +1990,7 @@ export const cinemaService = {
         method: 'POST',
         body: { reason },
         headers
-      }).catch(() => apiFetch('/booking/' + id + '/cancel', { method: 'POST', body: { reason, expectedVersion }, headers }));
+      });
       if (res && res.data) {
         res.data = normalizeBookingData(res.data);
       }
@@ -2020,8 +2020,7 @@ export const cinemaService = {
       const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
       const numericId = typeof id === 'string' ? (parseInt(id.replace(/\D/g, ''), 10) || id) : id;
       const apiMethod = method === 'GATEWAY' ? 'VNPAY' : method;
-      return apiFetch('/bookings/' + numericId + '/payment', { method: 'POST', body: { method: apiMethod }, headers })
-        .catch(() => apiFetch('/booking/' + id + '/payment', { method: 'POST', body: { method: apiMethod, expectedVersion }, headers }));
+      return apiFetch('/bookings/' + numericId + '/payment', { method: 'POST', body: { method: apiMethod }, headers });
     }
     await delay();
     const state = getState();
@@ -2169,8 +2168,7 @@ export const cinemaService = {
     if (IS_REAL_API_MODE) {
       const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
       const numericId = typeof id === 'string' ? (parseInt(id.replace(/\D/g, ''), 10) || id) : id;
-      return apiFetch('/bookings/' + numericId + '/refund', { method: 'POST', body: { reason }, headers })
-        .catch(() => apiFetch('/booking/' + id + '/refund', { method: 'POST', body: { reason, expectedVersion }, headers }));
+      return apiFetch('/bookings/' + numericId + '/refund', { method: 'POST', body: { reason }, headers });
     }
     await delay();
     const state = getState();
@@ -2238,7 +2236,7 @@ export const cinemaService = {
   async getRefundDetail(bookingId) {
     if (IS_REAL_API_MODE) {
       const numericId = typeof bookingId === 'string' ? (parseInt(bookingId.replace(/\D/g, ''), 10) || bookingId) : bookingId;
-      return apiFetch('/bookings/' + numericId + '/refund').catch(() => apiFetch('/booking/' + bookingId + '/refund'));
+      return apiFetch('/bookings/' + numericId + '/refund');
     }
     await delay();
     const state = getState();

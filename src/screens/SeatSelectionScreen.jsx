@@ -63,10 +63,18 @@ export default function SeatSelectionScreen() {
       });
       // Điều hướng ngay sang màn hình đơn hàng /booking/:id
       const targetBookingId = res.data?.id || res.data?.bookingId;
-      navigate(`/booking/${targetBookingId}`);
+      if (targetBookingId) {
+        navigate(`/booking/${targetBookingId}`);
+      } else {
+        throw new Error('Không nhận được mã đơn đặt vé từ máy chủ.');
+      }
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message || 'Không thể giữ ghế. Vui lòng thử lại.');
+      try {
+        const freshRes = await cinemaService.getSeatMap(showtimeId);
+        if (freshRes?.data) setSeatMapData(freshRes.data);
+      } catch (_) {}
       setSubmitting(false);
     }
   };

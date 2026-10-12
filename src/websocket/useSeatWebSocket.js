@@ -80,7 +80,7 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
             const othersHolding = [];
             Object.entries(msg.holdingSeats).forEach(([sId, uId]) => {
               if (String(uId) !== String(myUserId)) {
-                othersHolding.push(Number(sId));
+                othersHolding.push(String(sId));
               }
             });
             setHoldingSeatIds(othersHolding);
@@ -88,20 +88,20 @@ export function useSeatWebSocket(showtimeId, currentUserId) {
 
           // 2. Nhận thông báo thời gian thực khi trạng thái ghế thay đổi
           if (msg.type === 'SEAT_STATE_CHANGED') {
-            const targetSeatId = Number(msg.seatId);
-            const actionUserId = msg.userId;
+            const targetSeatId = String(msg.seatId);
+            const actionUserId = String(msg.userId);
 
             if (msg.status === 'HOLDING') {
               // Nếu người giữ là người khác -> Đổi ghế thành màu xám (disabled)
-              if (String(actionUserId) !== String(myUserId)) {
-                setHoldingSeatIds((prev) => Array.from(new Set([...prev, targetSeatId])));
+              if (actionUserId !== String(myUserId)) {
+                setHoldingSeatIds((prev) => Array.from(new Set([...prev.map(String), targetSeatId])));
               }
             } else if (msg.status === 'AVAILABLE') {
               // Ghế được nhả ra -> Cho phép chọn lại
-              setHoldingSeatIds((prev) => prev.filter((id) => id !== targetSeatId));
+              setHoldingSeatIds((prev) => prev.filter((id) => String(id) !== targetSeatId));
             } else if (msg.status === 'BOOKED') {
               // Ghế đã bán xong -> Loại khỏi danh sách giữ và chuyển hẳn thành đã bán
-              setHoldingSeatIds((prev) => prev.filter((id) => id !== targetSeatId));
+              setHoldingSeatIds((prev) => prev.filter((id) => String(id) !== targetSeatId));
             }
           }
 

@@ -49,11 +49,15 @@ export default function SeatSelectionScreen() {
   };
 
   const handleToggleSeat = (seat) => {
-    // Không cho chọn nếu ghế đã bị bán hoặc đang có người khác giữ qua WebSocket
-    if (seat.status !== 'AVAILABLE' || holdingSeatIds.includes(seat.id)) return;
+    const seatIdStr = String(seat.id);
+    const isHeld = holdingSeatIds.some((id) => String(id) === seatIdStr);
 
-    if (selectedSeatIds.includes(seat.id)) {
-      setSelectedSeatIds(selectedSeatIds.filter((id) => id !== seat.id));
+    // Không cho chọn nếu ghế đã bị bán hoặc đang có người khác giữ qua WebSocket
+    if (seat.status !== 'AVAILABLE' || isHeld) return;
+
+    const isSelected = selectedSeatIds.some((id) => String(id) === seatIdStr);
+    if (isSelected) {
+      setSelectedSeatIds(selectedSeatIds.filter((id) => String(id) !== seatIdStr));
       sendReleaseSeat(seat.id); // Bắn tín hiệu WebSocket nhả ghế
       setErrorMsg('');
     } else {
@@ -119,7 +123,7 @@ export default function SeatSelectionScreen() {
   const { showtime, seats } = seatMapData;
 
   // Tính tổng tiền các ghế đã chọn
-  const selectedSeatsList = seats.filter((s) => selectedSeatIds.includes(s.id));
+  const selectedSeatsList = seats.filter((s) => selectedSeatIds.some((id) => String(id) === String(s.id)));
   const totalAmount = selectedSeatsList.reduce((sum, s) => sum + s.price, 0);
 
   // Nhóm ghế theo từng hàng (A -> H)
@@ -179,8 +183,8 @@ export default function SeatSelectionScreen() {
                 <span className="row-indicator">{rowLetter}</span>
                 <div className="row-seats">
                   {rowsMap[rowLetter].map((seat) => {
-                    const isSelected = selectedSeatIds.includes(seat.id);
-                    const isHeldByOther = holdingSeatIds.includes(seat.id) && !isSelected;
+                    const isSelected = selectedSeatIds.some((id) => String(id) === String(seat.id));
+                    const isHeldByOther = holdingSeatIds.some((id) => String(id) === String(seat.id)) && !isSelected;
                     const isBooked = seat.status === 'BOOKED' || seat.status === 'HELD';
                     const isVip = seat.type === 'VIP';
 

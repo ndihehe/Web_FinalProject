@@ -3194,11 +3194,12 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   cursor: not-allowed;
 }
 .seat-cell.holding-by-other {
-  background: #334155 !important;
-  border: 1px dashed #94a3b8 !important;
-  color: #64748b !important;
+  background: #1e293b !important;
+  border: 1.5px dashed #f97316 !important;
+  color: #fb923c !important;
   cursor: not-allowed !important;
-  opacity: 0.7;
+  opacity: 0.9;
+  position: relative;
 }
 .seat-legend-row {
   display: flex;
@@ -3224,7 +3225,7 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
 .legend-sample.vip { background: #242220; border-color: #ffaa33; }
 .legend-sample.selected { background: var(--orange-primary); border-color: var(--orange-primary); }
 .legend-sample.booked { background: #0d1118; border-color: #161c28; }
-.legend-sample.holding-by-other { background: #334155; border: 1px dashed #94a3b8; }
+.legend-sample.holding-by-other { background: #1e293b; border: 1.5px dashed #f97316; }
 
 .seat-bottom-bar {
   position: fixed;

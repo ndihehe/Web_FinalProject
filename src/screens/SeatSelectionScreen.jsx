@@ -36,6 +36,7 @@ export default function SeatSelectionScreen() {
   // Khởi tạo kết nối Real-time WebSocket
   const {
     holdingSeatIds,
+    bookedSeatIds,
     isConnected: isSocketConnected,
     socketError,
     sendHoldSeat,
@@ -70,9 +71,10 @@ export default function SeatSelectionScreen() {
   const handleToggleSeat = (seat) => {
     const seatIdStr = String(seat.id);
     const isHeld = holdingSeatIds.some((id) => String(id) === seatIdStr);
+    const isBookedRealtime = bookedSeatIds.some((id) => String(id) === seatIdStr);
 
-    // Không cho chọn nếu ghế đã bị bán hoặc đang có người khác giữ qua WebSocket
-    if (seat.status !== 'AVAILABLE' || isHeld) return;
+    // Không cho chọn nếu ghế đã bị bán, đã được tạo đơn, hoặc đang có người khác giữ qua WebSocket
+    if (seat.status !== 'AVAILABLE' || isHeld || isBookedRealtime) return;
 
     const isSelected = selectedSeatIds.some((id) => String(id) === seatIdStr);
     if (isSelected) {
@@ -204,7 +206,7 @@ export default function SeatSelectionScreen() {
                   {rowsMap[rowLetter].map((seat) => {
                     const isSelected = selectedSeatIds.some((id) => String(id) === String(seat.id));
                     const isHeldByOther = holdingSeatIds.some((id) => String(id) === String(seat.id)) && !isSelected;
-                    const isBooked = seat.status === 'BOOKED' || seat.status === 'HELD';
+                    const isBooked = seat.status === 'BOOKED' || seat.status === 'HELD' || bookedSeatIds.some((id) => String(id) === String(seat.id));
                     const isVip = seat.type === 'VIP';
 
                     let seatClass = 'seat-cell';

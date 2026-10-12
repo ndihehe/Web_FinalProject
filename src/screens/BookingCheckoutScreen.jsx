@@ -74,6 +74,11 @@ export default function BookingCheckoutScreen() {
         clearInterval(interval);
         setBooking((prev) => (prev ? { ...prev, status: 'EXPIRED' } : null));
         setErrorMsg('Đơn hàng đã hết hạn giữ chỗ (10 phút). Ghế đã được giải phóng. Vui lòng chọn lại ghế.');
+        // Tự động gửi lệnh hủy giải phóng ghế về server
+        const bId = booking.id || booking.bookingId;
+        if (bId) {
+          cinemaService.cancelBooking(bId, { reason: 'Hết hạn giữ chỗ 10 phút' }).catch(() => {});
+        }
       }
     }, 1000);
 
@@ -140,14 +145,26 @@ export default function BookingCheckoutScreen() {
     if (!booking) return;
     setSubmitting(true);
     try {
-      await cinemaService.cancelBooking(booking.id, {
+      const bId = booking.id || booking.bookingId;
+      await cinemaService.cancelBooking(bId, {
         reason: 'Khách hàng hủy đơn để chọn lại ghế',
         expectedVersion: booking.version
       });
       setIsCancelModalOpen(false);
       // Giải phóng ghế thành công, chuyển hướng ngay về sơ đồ chọn ghế
-      const targetShowtimeId = booking.showtime?.id || booking.showTimeId || booking.showtime?.showtimeId;
-      navigate(`/showtime/${targetShowtimeId}/seat`);
+      const targetShowtimeId =
+        booking.showTime?.showTimeId ||
+        booking.showtime?.showTimeId ||
+        booking.showtime?.id ||
+        booking.showTimeId ||
+        booking.showtimeId;
+      if (targetShowtimeId) {
+        navigate(`/showtime/${targetShowtimeId}/seat`);
+      } else if (booking.showtime?.movieId || movie?.id) {
+        navigate(`/movie/${booking.showtime?.movieId || movie?.id}`);
+      } else {
+        navigate('/movie');
+      }
     } catch (e) {
       setErrorMsg(e.message || 'Lỗi khi hủy đơn để đổi ghế');
       setSubmitting(false);
@@ -227,12 +244,19 @@ export default function BookingCheckoutScreen() {
   const isExpired = booking.status === 'EXPIRED';
   const isCancelled = booking.status === 'CANCELLED';
   const isPaid = booking.status === 'PAID';
+  const isPending = booking.status === 'PENDING_PAYMENT' || booking.status === 'PENDING';
 
   const showtimeDateObj = new Date(booking.showtime?.startsAt || Date.now());
   const showtimeTimeString = showtimeDateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const releaseYear = movie?.releaseDate ? new Date(movie.releaseDate).getFullYear() : '2024';
 
   const trailerEmbedUrl = movie?.trailerUrl ? movie.trailerUrl.replace('watch?v=', 'embed/') : null;
+  const currentShowtimeId =
+    booking.showTime?.showTimeId ||
+    booking.showtime?.showTimeId ||
+    booking.showtime?.id ||
+    booking.showTimeId ||
+    booking.showtimeId;
 
   return (
     <div className="page-container checkout-screen">
@@ -249,7 +273,7 @@ export default function BookingCheckoutScreen() {
           </span>
           <span className="breadcrumb-separator">/</span>
           <span className="breadcrumb-current">Thanh toán vé #{booking.id || booking.bookingId}</span>
-          {booking.status === 'PENDING_PAYMENT' && (
+          {isPending && (
             <button
               type="button"
               className="btn-breadcrumb-change-seats"
@@ -262,7 +286,7 @@ export default function BookingCheckoutScreen() {
         </div>
 
         {/* CẢNH BÁO ĐẾM NGƯỢC THỜI HẠN GIỮ GHẾ 10 PHÚT */}
-        {booking.status === 'PENDING_PAYMENT' && (
+        {isPending && (
           <div className="countdown-alert-box">
             <div className="countdown-content">
               <FeatherIcon name="clock" size={22} className="clock-icon" />
@@ -281,7 +305,10 @@ export default function BookingCheckoutScreen() {
           <div className="alert-banner expired">
             <FeatherIcon name="alert-triangle" size={20} />
             <span>Đơn hàng đã hết hạn giữ chỗ (10 phút). Ghế đã được giải phóng.</span>
-            <button className="btn-rebook" onClick={() => navigate(`/showtime/${booking.showtime.id}/seat`)}>
+            <button
+              className="btn-rebook"
+              onClick={() => currentShowtimeId ? navigate(`/showtime/${currentShowtimeId}/seat`) : navigate('/movie')}
+            >
               CHỌN LẠI GHẾ
             </button>
           </div>
@@ -290,8 +317,11 @@ export default function BookingCheckoutScreen() {
         {isCancelled && (
           <div className="alert-banner cancelled">
             <FeatherIcon name="x-circle" size={20} />
-            <span>Đơn hàng này đã được hủy lúc {new Date(booking.cancelledAt).toLocaleTimeString('vi-VN')}. Ghế đã được mở lại.</span>
-            <button className="btn-rebook" onClick={() => navigate(`/showtime/${booking.showtime.id}/seat`)}>
+            <span>Đơn hàng này đã được hủy lúc {new Date(booking.cancelledAt || Date.now()).toLocaleTimeString('vi-VN')}. Ghế đã được mở lại.</span>
+            <button
+              className="btn-rebook"
+              onClick={() => currentShowtimeId ? navigate(`/showtime/${currentShowtimeId}/seat`) : navigate('/movie')}
+            >
               ĐẶT LẠI VÉ SUẤT CHIẾU NÀY
             </button>
           </div>
@@ -682,7 +712,7 @@ export default function BookingCheckoutScreen() {
                 </button>
               )}
 
-              {booking.eligibility?.canCancel && !isPaid && !isCancelled && (
+              {isPending && !isPaid && !isCancelled && (
                 <button
                   type="button"
                   className="btn-cancel-checkout"
@@ -704,14 +734,18 @@ export default function BookingCheckoutScreen() {
           <div className="modal-box-orthogonal">
             <h3 className="modal-title spotlight-text">Quay lại sơ đồ chọn ghế</h3>
             <p className="modal-desc">
-              Bạn có muốn hủy đơn vé hiện tại để quay lại chọn ghế khác không? Các ghế đang giữ ({booking.seats.map((s) => s.label).join(', ')}) sẽ lập tức được giải phóng về hệ thống để bạn chọn lại.
+              Bạn có muốn hủy đơn vé hiện tại để quay lại chọn ghế khác không? Các ghế đang giữ (
+              {Array.isArray(booking.seats)
+                ? booking.seats.map((s) => (typeof s === 'string' ? s : s?.label || s?.seatLabel || `${s?.row || ''}${s?.number || s?.col || ''}`)).join(', ')
+                : ''}
+              ) sẽ lập tức được giải phóng về hệ thống để bạn chọn lại.
             </p>
             <div className="modal-actions-row">
               <button className="btn-modal-cancel" onClick={() => setIsCancelModalOpen(false)}>
                 Giữ đơn hiện tại
               </button>
-              <button className="btn-modal-danger" onClick={handleCancelBooking}>
-                Đồng ý & Chọn lại ghế
+              <button className="btn-modal-danger" disabled={submitting} onClick={handleCancelBooking}>
+                {submitting ? 'Đang giải phóng ghế...' : 'Đồng ý & Chọn lại ghế'}
               </button>
             </div>
           </div>

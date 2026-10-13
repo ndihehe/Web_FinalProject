@@ -43,9 +43,8 @@ Cinema_PostgreSQL_Reference/
 api_excel_*
 
 # Internal documentation, reports, prompt specifications & audit (Keep local only)
+docs/
 docs/*
-!docs/NOTE_CONG_NGHE_VA_KIEN_TRUC_FE.md
-!docs/HUONG_DAN_KET_NOI_DATABASE_VA_XU_LY_GOI_TIN.md
 *.docx
 /KIEM_KE_VA_CHUAN_HOA_HE_THONG.md
 /DANH_SACH_CHINH_SUA.md

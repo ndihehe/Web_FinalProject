@@ -216,7 +216,7 @@ function normalizeProduct(p) {
     unitPrice: price,
     description: p.description || '',
     category: p.category || 'Combo',
-    imageUrl: p.imageUrl || p.image_url || '/images/aovis/cinema1.jpg',
+    imageUrl: p.imageUrl || p.image_url || '/images/aovis/popcorn1.jpg',
     status: p.status || 'AVAILABLE'
   };
 }

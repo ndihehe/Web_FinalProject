@@ -3,6 +3,7 @@ import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
 import TrailerModal from '../components/TrailerModal';
+import CinemaImage from '../components/CinemaImage';
 
 export default function CinemaDetailScreen() {
   const { params, navigate } = useRouter();
@@ -155,9 +156,10 @@ export default function CinemaDetailScreen() {
       {/* =========================================================================
           PHẦN 1: THÔNG TIN RẠP TRÊN ĐẦU TRANG (CHUẨN STYLE new_cinema_1.png)
           ========================================================================= */}
-      <div
+      <CinemaImage
+        isBackground
+        cinema={cinema}
         className="cinema-panoramic-hero"
-        style={{ backgroundImage: `url(${cinema.imageUrl || '/images/aovis/cinema1.jpg'})` }}
       >
         <div className="cinema-hero-dark-overlay" />
 
@@ -196,7 +198,7 @@ export default function CinemaDetailScreen() {
             </div>
           </div>
         </div>
-      </div>
+      </CinemaImage>
 
       {/* =========================================================================
           PHẦN 2: LỊCH CHIẾU PHIM CUỘN XUỐNG (CHUẨN STYLE new_cinema_2.png & user_upload_1.png)

@@ -4,6 +4,7 @@ import AovisFeatureBoxes from '../components/AovisFeatureBoxes';
 import FeatherIcon from '../components/FeatherIcon';
 import { useRouter } from '../router';
 import { cinemaService } from '../services/cinemaService';
+import CinemaImage from '../components/CinemaImage';
 
 export default function HomeScreen() {
   const { navigate } = useRouter();
@@ -170,15 +171,10 @@ export default function HomeScreen() {
                 onClick={() => navigate(`/cinema/${cinema.id}`)}
               >
                 <div className="showcase-cinema-img-box">
-                  <img
-                    src={cinema.imageUrl || '/images/aovis/cinema1.jpg'}
+                  <CinemaImage
+                    cinema={cinema}
                     alt={cinema.name}
                     className="showcase-cinema-img"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = '/images/aovis/cinema1.jpg';
-                    }}
                   />
                   <span className="showcase-city-badge">{cinema.cityName}</span>
                 </div>

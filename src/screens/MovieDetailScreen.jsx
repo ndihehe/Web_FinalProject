@@ -3,6 +3,7 @@ import { cinemaService, CITIES } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
 import MovieReviewsSection from '../components/MovieReviewsSection';
+import { getTrailerEmbedUrl, getYoutubeSearchUrl } from '../utils/trailerUtils';
 
 export default function MovieDetailScreen() {
   const { params, navigate } = useRouter();
@@ -445,12 +446,32 @@ export default function MovieDetailScreen() {
             </button>
             <div className="trailer-iframe-box trailer-video-frame">
               <iframe
-                src="https://www.youtube.com/embed/TJFVV2L8GKs?autoplay=1"
-                title={`${movie.title} Trailer`}
+                src={getTrailerEmbedUrl(movie?.trailerUrl, movie?.title)}
+                title={`${movie?.title || 'Phim'} Trailer`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
+            </div>
+            <div style={{ marginTop: '12px', textAlign: 'center' }}>
+              <a
+                href={getYoutubeSearchUrl(movie?.title)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#94a3b8',
+                  fontSize: '13px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'color 0.2s'
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.color = '#ffffff')}
+                onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
+              >
+                <span>Mở tìm kiếm trực tiếp trên YouTube ↗</span>
+              </a>
             </div>
           </div>
         </div>

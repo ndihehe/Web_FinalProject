@@ -3,6 +3,7 @@ import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
 import { useAuthModal } from '../context/AuthModalContext';
+import { getTrailerEmbedUrl, getYoutubeSearchUrl } from '../utils/trailerUtils';
 
 export default function BookingCheckoutScreen() {
   const { params, navigate } = useRouter();
@@ -250,7 +251,7 @@ export default function BookingCheckoutScreen() {
   const showtimeTimeString = showtimeDateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const releaseYear = movie?.releaseDate ? new Date(movie.releaseDate).getFullYear() : '2024';
 
-  const trailerEmbedUrl = movie?.trailerUrl ? movie.trailerUrl.replace('watch?v=', 'embed/') : null;
+  const trailerEmbedUrl = getTrailerEmbedUrl(movie?.trailerUrl, movie?.title || booking?.showtime?.movieTitle);
   const currentShowtimeId =
     booking.showTime?.showTimeId ||
     booking.showtime?.showTimeId ||
@@ -362,7 +363,7 @@ export default function BookingCheckoutScreen() {
               }}
             >
               <div className="ticket-visual-fade"></div>
-              {movie?.trailerUrl && (
+              {(movie?.title || booking?.showtime?.movieTitle) && (
                 <button
                   type="button"
                   className="btn-ticket-trailer font-chinese"
@@ -764,12 +765,32 @@ export default function BookingCheckoutScreen() {
             </div>
             <div className="trailer-video-box">
               <iframe
-                src={`${trailerEmbedUrl}?autoplay=1`}
+                src={trailerEmbedUrl}
                 title="Trailer"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
+            </div>
+            <div style={{ marginTop: '12px', textAlign: 'center' }}>
+              <a
+                href={getYoutubeSearchUrl(movie?.title || booking?.showtime?.movieTitle)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#94a3b8',
+                  fontSize: '13px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'color 0.2s'
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.color = '#ffffff')}
+                onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
+              >
+                <span>Mở tìm kiếm trực tiếp trên YouTube ↗</span>
+              </a>
             </div>
           </div>
         </div>

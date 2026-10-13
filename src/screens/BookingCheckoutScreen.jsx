@@ -3,7 +3,6 @@ import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
 import { useAuthModal } from '../context/AuthModalContext';
-import { getTrailerEmbedUrl, getYoutubeSearchUrl } from '../utils/trailerUtils';
 
 export default function BookingCheckoutScreen() {
   const { params, navigate } = useRouter();
@@ -250,8 +249,6 @@ export default function BookingCheckoutScreen() {
   const showtimeDateObj = new Date(booking.showtime?.startsAt || Date.now());
   const showtimeTimeString = showtimeDateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const releaseYear = movie?.releaseDate ? new Date(movie.releaseDate).getFullYear() : '2024';
-
-  const trailerEmbedUrl = getTrailerEmbedUrl(movie?.trailerUrl, movie?.title || booking?.showtime?.movieTitle);
   const currentShowtimeId =
     booking.showTime?.showTimeId ||
     booking.showtime?.showTimeId ||

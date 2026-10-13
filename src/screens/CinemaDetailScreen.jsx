@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
-import { getTrailerEmbedUrl, getYoutubeSearchUrl } from '../utils/trailerUtils';
+import TrailerModal from '../components/TrailerModal';
 
 export default function CinemaDetailScreen() {
   const { params, navigate } = useRouter();
@@ -490,49 +490,11 @@ export default function CinemaDetailScreen() {
       {/* =========================================================================
           MODAL TRAILER POPUP (KHI CLICK VÀO PHIM TRONG MỤC PHIM ĐANG CHIẾU)
           ========================================================================= */}
-      {activeTrailerMovie && (
-        <div className="trailer-modal-backdrop trailer-modal-overlay" onClick={() => setActiveTrailerMovie(null)}>
-          <div className="trailer-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="trailer-modal-close btn-close-modal"
-              onClick={() => setActiveTrailerMovie(null)}
-              title="Đóng trailer"
-            >
-              ✕
-            </button>
-            <div className="trailer-iframe-box">
-              <iframe
-                src={getTrailerEmbedUrl(activeTrailerMovie?.trailerUrl, activeTrailerMovie?.title)}
-                title={`${activeTrailerMovie?.title || 'Phim'} Trailer`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
-            <div style={{ marginTop: '12px', textAlign: 'center' }}>
-              <a
-                href={getYoutubeSearchUrl(activeTrailerMovie?.title)}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: '#94a3b8',
-                  fontSize: '13px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'color 0.2s'
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.color = '#ffffff')}
-                onMouseOut={(e) => (e.currentTarget.style.color = '#94a3b8')}
-              >
-                <span>Mở tìm kiếm trực tiếp trên YouTube ↗</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      <TrailerModal
+        isOpen={Boolean(activeTrailerMovie)}
+        onClose={() => setActiveTrailerMovie(null)}
+        movie={activeTrailerMovie}
+      />
     </div>
   );
 }

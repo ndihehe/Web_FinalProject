@@ -326,11 +326,6 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
                 {/* Comment Text */}
                 <p className="comment-body-text">{rev.comment}</p>
 
-                {/* Translate Subtle Action (Image 4) */}
-                <button className="btn-translate-action" type="button">
-                  Translate
-                </button>
-
                 {/* Action Footer: Like, Dislike, Reply */}
                 <div className="comment-actions-bar">
                   <button

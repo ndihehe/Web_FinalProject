@@ -165,13 +165,15 @@ export default function TicketDetailScreen() {
 
   // Xử lý viết đánh giá phim (PUT /booking/{id}/review)
   const handleConfirmReview = async () => {
-    if (!booking) return;
     if (!reviewComment.trim()) return;
     setSubmitting(true);
     try {
-      await cinemaService.upsertReview(booking.id, {
+      const movieObj = moviesMap[ticket?.movieId] || moviesMap[ticket?.movieTitle] || moviesMap[booking?.movieId] || moviesMap[booking?.movieTitle];
+      const targetMovieId = movieObj?.id || ticket?.movieId || booking?.movieId || booking?.showtime?.movieId;
+      await cinemaService.upsertReview(booking?.id || ticket?.bookingId, {
         rating: reviewRating,
         comment: reviewComment.trim(),
+        movieId: targetMovieId,
         expectedReviewVersion: 0
       });
       setIsReviewModalOpen(false);
@@ -207,7 +209,7 @@ export default function TicketDetailScreen() {
   const isVoid = ticketStatus === 'VOID';
   const isUsed = ticketStatus === 'USED';
   const canRefund = booking && booking.eligibility && booking.eligibility.canRefund && !isVoid && !isUsed;
-  const canReview = booking && booking.eligibility && booking.eligibility.canReview && !isVoid;
+  const canReview = !isVoid && ((booking && booking.eligibility && booking.eligibility.canReview) || ticketStatus === 'VALID' || ticketStatus === 'USED');
   const startsAtDate = ticket.startsAt && !isNaN(new Date(ticket.startsAt).getTime()) ? new Date(ticket.startsAt) : null;
   const productsList = booking?.products || booking?.fnbItems || booking?.items || ticket?.products || [];
   const totalAmountDisplay = booking?.totalAmount || ticket?.totalAmount || ticket?.price;

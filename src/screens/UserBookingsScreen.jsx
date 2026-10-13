@@ -105,9 +105,12 @@ export default function UserBookingsScreen() {
     if (!reviewComment.trim()) return;
     setSubmitting(true);
     try {
+      const movieObj = moviesMap[reviewBooking.showtime?.movieId] || moviesMap[reviewBooking.showtime?.movieTitle] || moviesMap[reviewBooking.movieId] || moviesMap[reviewBooking.movieTitle];
+      const targetMovieId = movieObj?.id || reviewBooking.showtime?.movieId || reviewBooking.movieId;
       await cinemaService.upsertReview(reviewBooking.id, {
         rating: reviewRating,
         comment: reviewComment.trim(),
+        movieId: targetMovieId,
         expectedReviewVersion: 0
       });
       setReviewBooking(null);

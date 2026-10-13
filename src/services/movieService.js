@@ -413,10 +413,50 @@ export const movieService = {
     return successResponse(list, { page: 0, size: list.length, totalElements: list.length, totalPages: 1 });
   },
 
-  async upsertReview(bookingId, { rating = 5, comment = '', expectedReviewVersion = 0 }, idempotencyKey = null) {
+  async createReview(movieId, { rating = 5, comment = '' } = {}) {
+    if (IS_REAL_API_MODE) {
+      const numericMovieId = typeof movieId === 'string' ? (parseInt(String(movieId).replace(/\D/g, ''), 10) || movieId) : movieId;
+      return apiFetch('/movies/' + numericMovieId + '/reviews', {
+        method: 'POST',
+        body: { rating, comment }
+      });
+    }
+    await delay();
+    const state = getState();
+    const newRev = {
+      id: 'rev-' + Date.now().toString().slice(-6),
+      movieId: movieId,
+      authorDisplayName: state.currentUser?.fullName || 'Khán giả',
+      rating,
+      comment,
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    state.reviews.unshift(newRev);
+    saveState(state);
+    return successResponse(newRev);
+  },
+
+  async upsertReview(bookingId, { rating = 5, comment = '', movieId = null, expectedReviewVersion = 0 } = {}, idempotencyKey = null) {
     if (IS_REAL_API_MODE) {
       const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
-      return apiFetch('/booking/' + bookingId + '/review', { method: 'POST', body: { rating, comment, expectedReviewVersion }, headers });
+      let mId = movieId;
+      if (!mId && bookingId) {
+        try {
+          const numericBId = typeof bookingId === 'string' ? (parseInt(String(bookingId).replace(/\D/g, ''), 10) || bookingId) : bookingId;
+          const bRes = await apiFetch('/bookings/' + numericBId);
+          mId = bRes?.data?.movieId || bRes?.data?.showtime?.movieId || bRes?.data?.showTime?.movieId;
+          if (!mId && bRes?.data?.showTime?.movieTitle) {
+            const moviesRes = await this.getMovies({ size: 100 }).catch(() => null);
+            const mList = Array.isArray(moviesRes?.data) ? moviesRes.data : (moviesRes?.data?.items || []);
+            const match = mList.find((m) => m.title === bRes.data.showTime.movieTitle);
+            if (match) mId = match.id;
+          }
+        } catch (_) {}
+      }
+      if (!mId) mId = bookingId;
+      return this.createReview(mId, { rating, comment });
     }
     await delay();
     const state = getState();
@@ -430,7 +470,7 @@ export const movieService = {
 
     const newRev = {
       id: 'rev-' + Date.now().toString().slice(-6),
-      movieId: booking.showtime.movieId,
+      movieId: movieId || booking?.movieId || booking?.showtime?.movieId || bookingId,
       authorDisplayName: state.currentUser.fullName,
       rating,
       comment,

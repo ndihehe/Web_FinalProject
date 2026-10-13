@@ -98,33 +98,41 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
   }, [initialReviews]);
 
   // Xử lý gửi bình luận mới
-  const handleSubmitComment = (e) => {
+  const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
     setSubmitting(true);
     const authorName = currentUser?.fullName || 'Khán giả Beta';
 
-    const newItem = {
-      id: `rev-${Date.now()}`,
-      author: authorName,
-      avatarBg: '#d96c2c',
-      createdAt: 'Vừa xong',
-      timestamp: Date.now(),
-      rating: newRating,
-      comment: newComment.trim(),
-      likes: 0,
-      dislikes: 0,
-      userLiked: false,
-      userDisliked: false,
-      replies: []
-    };
+    try {
+      const res = await cinemaService.createReview(movieId, {
+        rating: newRating,
+        comment: newComment.trim()
+      });
 
-    setTimeout(() => {
+      const newItem = {
+        id: res?.data?.id || `rev-${Date.now()}`,
+        author: authorName,
+        avatarBg: '#d96c2c',
+        createdAt: 'Vừa xong',
+        timestamp: Date.now(),
+        rating: newRating,
+        comment: newComment.trim(),
+        likes: 0,
+        dislikes: 0,
+        userLiked: false,
+        userDisliked: false,
+        replies: []
+      };
+
       setReviewsList([newItem, ...reviewsList]);
       setNewComment('');
+    } catch (err) {
+      alert(err.message || 'Không thể gửi đánh giá phim');
+    } finally {
       setSubmitting(false);
-    }, 200);
+    }
   };
 
   // Xử lý Thích / Không thích

@@ -378,7 +378,7 @@ function normalizeBookingData(raw) {
       cancelReasonCode: null,
       canRefund: isPaid,
       refundReasonCode: null,
-      canReview: false,
+      canReview: isPaid,
       reviewReasonCode: null
     };
   }

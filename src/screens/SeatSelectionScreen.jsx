@@ -3,9 +3,11 @@ import { cinemaService } from '../services/cinemaService';
 import { useRouter } from '../router';
 import FeatherIcon from '../components/FeatherIcon';
 import { useSeatWebSocket } from '../websocket/useSeatWebSocket';
+import { useAuthModal } from '../context/AuthModalContext';
 
 export default function SeatSelectionScreen() {
   const { params, navigate } = useRouter();
+  const { openClapperModal } = useAuthModal();
   const showtimeId = params.id;
 
   const [seatMapData, setSeatMapData] = useState(null);
@@ -95,6 +97,12 @@ export default function SeatSelectionScreen() {
   const handleProceedBooking = async () => {
     if (selectedSeatIds.length === 0) {
       setErrorMsg('Vui lòng chọn ít nhất 1 ghế để tiếp tục.');
+      return;
+    }
+
+    const token = localStorage.getItem('access_token') || localStorage.getItem('cinema_auth_token');
+    if (!token) {
+      openClapperModal('Vui lòng đăng nhập để tiến hành giữ ghế và hoàn tất đặt vé xem phim!');
       return;
     }
 

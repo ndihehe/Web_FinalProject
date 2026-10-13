@@ -17,6 +17,7 @@ import UserVouchersScreen from './screens/UserVouchersScreen';
 import UserProfileScreen from './screens/UserProfileScreen';
 import { AuthModalProvider, useAuthModal } from './context/AuthModalContext';
 import AuthModal from './components/AuthModal';
+import ClapperAuthModal from './components/ClapperAuthModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -251,6 +252,8 @@ function AppContent() {
       <Footer />
       {/* Global Auth Modal Popup (Thẻ đăng nhập nổi trên màn hình) */}
       <AuthModal />
+      {/* Clapperboard Login Required Modal (Popup điện ảnh báo yêu cầu đăng nhập) */}
+      <ClapperAuthModal />
       {/* Mobile Bottom Navigation Bar (Chỉ hiển thị trên Mobile <= 768px) */}
       <MobileBottomNav />
     </div>

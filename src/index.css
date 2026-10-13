@@ -7949,5 +7949,365 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   }
 }
 
+/* ==========================================================================
+   CINEMA CLAPPERBOARD LOGIN REQUIRED POPUP (CLAPPER AUTH MODAL)
+   ========================================================================== */
+.clapper-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(5, 7, 12, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: clapperFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes clapperFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.clapper-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #12141a;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 28px 70px -15px rgba(0, 0, 0, 0.9),
+    0 0 50px -10px rgba(230, 81, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: clapperCardPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+}
+
+@keyframes clapperCardPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Nút tắt góc phải */
+.clapper-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 40;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.clapper-close-btn:hover {
+  background: rgba(230, 81, 0, 0.85);
+  border-color: #ff6f00;
+  color: #ffffff;
+  transform: rotate(90deg) scale(1.08);
+}
+
+/* 1. THANH GÕ CLAPPERBOARD PHÍA TRÊN CÙNG */
+.clapper-top-stick {
+  position: relative;
+  height: 42px;
+  background: #0f1014;
+  border-bottom: 2px solid #000000;
+  transform-origin: 18px 42px; /* Điểm xoay tại chốt ốc vít kim loại */
+  animation: clapperSnap 0.82s cubic-bezier(0.2, 1.45, 0.35, 1) forwards;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+@keyframes clapperSnap {
+  0% {
+    transform: rotate(-28deg);
+  }
+  30% {
+    transform: rotate(-32deg);
+  }
+  65% {
+    transform: rotate(4deg);
+  }
+  82% {
+    transform: rotate(-1.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Ốc vít / Đinh tán kim loại của clapper */
+.clapper-pivot-screw {
+  position: absolute;
+  left: 14px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #475569 90%);
+  border: 1px solid #1e293b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  z-index: 15;
+}
+
+.clapper-pivot-screw::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 1.5px;
+  background: #1e293b;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 1px;
+}
+
+/* Vạch kẻ sọc xiên đen trắng kinh điển của bảng clapperboard điện ảnh */
+.clapper-stripes {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    135deg,
+    #f8fafc 0px,
+    #f8fafc 18px,
+    #14161d 18px,
+    #14161d 36px
+  );
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 -2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 2. THANH CỐ ĐỊNH PHÍA DƯỚI */
+.clapper-sub-stick {
+  position: relative;
+  height: 24px;
+  background: #0f1014;
+  border-bottom: 3px solid #ff6f00; /* Đường viền neon cam cinema */
+  box-shadow: 0 3px 14px rgba(255, 111, 0, 0.35);
+  z-index: 5;
+}
+
+/* 3. BẢNG SLATE CHÍNH */
+.clapper-slate-body {
+  padding: 22px 26px 26px;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 111, 0, 0.08) 0%, rgba(18, 20, 26, 0.98) 75%);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid thông số phim dạng bảng phấn (Slate Meta Grid) */
+.clapper-slate-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.6fr;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.clapper-grid-cell {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+.clapper-grid-cell:last-child {
+  border-right: none;
+}
+
+.clapper-cell-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+.clapper-cell-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ff9800;
+  letter-spacing: 1px;
+}
+
+/* Khối thông báo chính */
+.clapper-main-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.clapper-icon-badge {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 111, 0, 0.22) 0%, rgba(230, 81, 0, 0.08) 100%);
+  border: 1.5px solid rgba(255, 111, 0, 0.45);
+  box-shadow: 0 0 24px rgba(255, 111, 0, 0.25), inset 0 0 12px rgba(255, 111, 0, 0.15);
+  color: #ff8f00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  animation: clapperPulse 2s infinite ease-in-out;
+}
+
+@keyframes clapperPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 24px rgba(255, 111, 0, 0.25);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 32px rgba(255, 111, 0, 0.45);
+  }
+}
+
+.clapper-title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.clapper-desc {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 380px;
+}
+
+/* Các nút hành động */
+.clapper-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.btn-clapper-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+  background: linear-gradient(135deg, #ff8f00 0%, #e65100 100%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 22px -4px rgba(230, 81, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-clapper-primary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ffa000 0%, #ef6c00 100%);
+  box-shadow: 0 12px 28px -4px rgba(230, 81, 0, 0.65);
+}
+
+.btn-clapper-primary:active {
+  transform: translateY(0);
+}
+
+.btn-clapper-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.btn-clapper-secondary:hover {
+  background: rgba(255, 143, 0, 0.12);
+  border-color: rgba(255, 143, 0, 0.5);
+  color: #ff9800;
+  transform: translateY(-2px);
+}
+
+.btn-clapper-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-clapper-dismiss {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 8px;
+  cursor: pointer;
+  align-self: center;
+  transition: color 0.2s ease;
+}
+
+.btn-clapper-dismiss:hover {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .clapper-modal-card {
+    max-width: 92vw;
+  }
+
+  .clapper-slate-body {
+    padding: 18px 18px 22px;
+  }
+
+  .clapper-title {
+    font-size: 19px;
+  }
+
+  .clapper-desc {
+    font-size: 13.5px;
+  }
+
+  .clapper-actions-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+
 
 

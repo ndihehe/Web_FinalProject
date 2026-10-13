@@ -7,6 +7,10 @@ export function AuthModalProvider({ children }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
   const [onSuccessCallback, setOnSuccessCallback] = useState(null);
 
+  // Clapperboard Login Required Modal State
+  const [isClapperOpen, setIsClapperOpen] = useState(false);
+  const [clapperMessage, setClapperMessage] = useState('');
+
   const openAuthModal = (initialMode = 'login', callback = null) => {
     setMode(initialMode);
     setOnSuccessCallback(() => callback);
@@ -22,16 +26,36 @@ export function AuthModalProvider({ children }) {
     setMode(newMode);
   };
 
+  const openClapperModal = (message = '') => {
+    setClapperMessage(message || '');
+    setIsClapperOpen(true);
+  };
+
+  const closeClapperModal = () => {
+    setIsClapperOpen(false);
+  };
+
+  // Lắng nghe sự kiện toàn cục 'require-auth' từ apiClient hoặc bất cứ màn hình nào
+  useEffect(() => {
+    const handleRequireAuth = (event) => {
+      const msg = event?.detail?.message;
+      openClapperModal(msg);
+    };
+    window.addEventListener('require-auth', handleRequireAuth);
+    return () => window.removeEventListener('require-auth', handleRequireAuth);
+  }, []);
+
   // Close modal when Escape key is pressed
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        closeAuthModal();
+      if (e.key === 'Escape') {
+        if (isOpen) closeAuthModal();
+        if (isClapperOpen) closeClapperModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, isClapperOpen]);
 
   return (
     <AuthModalContext.Provider
@@ -41,7 +65,11 @@ export function AuthModalProvider({ children }) {
         openAuthModal,
         closeAuthModal,
         setAuthMode,
-        onSuccessCallback
+        onSuccessCallback,
+        isClapperOpen,
+        clapperMessage,
+        openClapperModal,
+        closeClapperModal
       }}
     >
       {children}

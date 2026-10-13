@@ -33,6 +33,7 @@ export function AuthModalProvider({ children }) {
 
   const closeClapperModal = () => {
     setIsClapperOpen(false);
+    setClapperMessage('');
   };
 
   // Lắng nghe sự kiện toàn cục 'require-auth' từ apiClient hoặc bất cứ màn hình nào

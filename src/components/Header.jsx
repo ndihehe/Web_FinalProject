@@ -45,6 +45,11 @@ export default function Header() {
 
   useEffect(() => {
     const fetchUser = () => {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('cinema_auth_token');
+      if (!token) {
+        setCurrentUser(null);
+        return;
+      }
       cinemaService.getUserProfile().then((res) => {
         setCurrentUser(res.data);
       }).catch(() => setCurrentUser(null));

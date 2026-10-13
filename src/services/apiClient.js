@@ -163,18 +163,11 @@ async function apiFetch(endpoint, { method = 'GET', body = null, params = null, 
   }
 
   if (!res.ok) {
-    if (res.status === 401) {
-      if (token) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('cinema_auth_token');
-      }
+    if (res.status === 401 && token) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('cinema_auth_token');
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'unauthorized' } }));
-        window.dispatchEvent(new CustomEvent('require-auth', { 
-          detail: { 
-            message: json?.message || 'Phiên làm việc đã hết hạn hoặc bạn chưa đăng nhập. Vui lòng đăng nhập để tiếp tục!' 
-          } 
-        }));
       }
     }
     const errorMsg = json?.error || json?.message || ('HTTP ' + res.status + ': ' + res.statusText);

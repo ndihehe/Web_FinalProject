@@ -35,6 +35,12 @@ export default function UserProfileScreen() {
   }, []);
 
   const loadProfile = async () => {
+    const token = localStorage.getItem('access_token') || localStorage.getItem('cinema_auth_token');
+    if (!token) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await cinemaService.getUserProfile();

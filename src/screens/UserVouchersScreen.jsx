@@ -9,6 +9,12 @@ export default function UserVouchersScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadVouchers = () => {
+    const token = localStorage.getItem('access_token') || localStorage.getItem('cinema_auth_token');
+    if (!token) {
+      setVouchers([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     cinemaService.getUserVouchers().then((res) => {
       const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);

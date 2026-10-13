@@ -23,6 +23,13 @@ export default function WalletScreen() {
   }, []);
 
   const loadWalletData = async () => {
+    const token = localStorage.getItem('access_token') || localStorage.getItem('cinema_auth_token');
+    if (!token) {
+      setWallet(null);
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [wRes, txRes] = await Promise.all([

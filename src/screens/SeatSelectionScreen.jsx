@@ -250,14 +250,6 @@ export default function SeatSelectionScreen() {
         {/* 4. CHÚ THÍCH CÁC LOẠI GHẾ */}
         <div className="seat-legend-row">
           <div className="legend-item">
-            <span className="legend-sample standard"></span>
-            <span>Ghế Thường ({((showtime.minTicketPrice || 90000)).toLocaleString('vi-VN')}đ)</span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-sample vip"></span>
-            <span>Ghế VIP ({((showtime.minTicketPrice || 90000) + 20000).toLocaleString('vi-VN')}đ)</span>
-          </div>
-          <div className="legend-item">
             <span className="legend-sample selected"></span>
             <span>Ghế Đang Chọn</span>
           </div>

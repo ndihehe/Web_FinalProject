@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cinemaService } from '../services/cinemaService';
 
-// SVG Icons matching Image 4
 const IconTrending = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -24,32 +23,6 @@ const IconSend = () => (
   </svg>
 );
 
-const IconThumbsUp = ({ active }) => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-  </svg>
-);
-
-const IconThumbsDown = ({ active }) => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" />
-  </svg>
-);
-
-const IconReply = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);
-
-const IconMore = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="5" r="1.8" />
-    <circle cx="12" cy="12" r="1.8" />
-    <circle cx="12" cy="19" r="1.8" />
-  </svg>
-);
-
 const IconStar = ({ filled }) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? '#d96c2c' : 'none'} stroke={filled ? '#d96c2c' : '#555'} strokeWidth="2">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -59,13 +32,10 @@ const IconStar = ({ filled }) => (
 export default function MovieReviewsSection({ movieId, movieTitle, initialReviews = [] }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [reviewsList, setReviewsList] = useState([]);
-  const [sortBy, setSortBy] = useState('popular'); // 'popular' | 'newest'
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'rating'
   const [newComment, setNewComment] = useState('');
   const [newRating, setNewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
-  const [expandedReplies, setExpandedReplies] = useState({});
-  const [activeReplyId, setActiveReplyId] = useState(null);
-  const [replyText, setReplyText] = useState('');
 
   // Tải user profile hiện tại
   useEffect(() => {
@@ -74,7 +44,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
       .catch(() => {});
   }, []);
 
-  // Khởi tạo danh sách bình luận phong phú theo chuẩn Image 4
+  // Khởi tạo danh sách bình luận
   useEffect(() => {
     const baseList = (initialReviews && initialReviews.length > 0)
       ? initialReviews.map((r, idx) => ({
@@ -85,12 +55,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
           createdAt: r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : 'Mới đây',
           timestamp: r.createdAt ? new Date(r.createdAt).getTime() : Date.now() - idx * 86400000,
           rating: r.rating || 5,
-          comment: r.comment || '',
-          likes: r.likes || 0,
-          dislikes: r.dislikes || 0,
-          userLiked: false,
-          userDisliked: false,
-          replies: []
+          comment: r.comment || ''
         }))
       : [];
 
@@ -118,12 +83,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
         createdAt: 'Vừa xong',
         timestamp: Date.now(),
         rating: newRating,
-        comment: newComment.trim(),
-        likes: 0,
-        dislikes: 0,
-        userLiked: false,
-        userDisliked: false,
-        replies: []
+        comment: newComment.trim()
       };
 
       setReviewsList([newItem, ...reviewsList]);
@@ -135,118 +95,45 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
     }
   };
 
-  // Xử lý Thích / Không thích
-  const handleToggleLike = (id) => {
-    setReviewsList((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const wasLiked = item.userLiked;
-        return {
-          ...item,
-          userLiked: !wasLiked,
-          likes: wasLiked ? item.likes - 1 : item.likes + 1,
-          userDisliked: wasLiked ? item.userDisliked : false,
-          dislikes: !wasLiked && item.userDisliked ? item.dislikes - 1 : item.dislikes
-        };
-      })
-    );
-  };
-
-  const handleToggleDislike = (id) => {
-    setReviewsList((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const wasDisliked = item.userDisliked;
-        return {
-          ...item,
-          userDisliked: !wasDisliked,
-          dislikes: wasDisliked ? item.dislikes - 1 : item.dislikes + 1,
-          userLiked: wasDisliked ? item.userLiked : false,
-          likes: !wasDisliked && item.userLiked ? item.likes - 1 : item.likes
-        };
-      })
-    );
-  };
-
-  // Toggle mở danh sách câu trả lời
-  const toggleReplies = (id) => {
-    setExpandedReplies((prev) => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  // Gửi câu trả lời phản hồi
-  const handleSendReply = (revId) => {
-    if (!replyText.trim()) return;
-    const authorName = currentUser?.fullName || 'Khán giả Beta';
-
-    setReviewsList((prev) =>
-      prev.map((r) => {
-        if (r.id !== revId) return r;
-        return {
-          ...r,
-          replies: [
-            ...r.replies,
-            {
-              id: `rep-${Date.now()}`,
-              author: authorName,
-              avatarBg: '#d96c2c',
-              createdAt: 'Vừa xong',
-              comment: replyText.trim()
-            }
-          ]
-        };
-      })
-    );
-
-    setReplyText('');
-    setActiveReplyId(null);
-    setExpandedReplies((prev) => ({ ...prev, [revId]: true }));
-  };
-
-  // Sắp xếp danh sách
+  // Sắp xếp danh sách bình luận
   const sortedReviews = [...reviewsList].sort((a, b) => {
-    if (sortBy === 'popular') {
-      return (b.likes - b.dislikes) - (a.likes - a.dislikes);
+    if (sortBy === 'rating') {
+      return b.rating - a.rating;
     }
     return b.timestamp - a.timestamp;
   });
 
-  const totalCommentsCount = reviewsList.reduce(
-    (sum, item) => sum + 1 + (item.replies ? item.replies.length : 0),
-    0
-  );
+  const totalCommentsCount = reviewsList.length;
 
   return (
     <div className="movie-comments-frame" id="movie-comments-section">
-      {/* 1. Header Frame: Comments Count & Sort Pills (Image 4) */}
+      {/* 1. Header Frame: Comments Count & Sort Pills */}
       <div className="comments-frame-header">
         <h3 className="comments-main-title">
-          Comments <span className="comments-count-badge">({totalCommentsCount >= 1000 ? `${(totalCommentsCount / 1000).toFixed(1)}K` : totalCommentsCount})</span>
+          Bình luận & Đánh giá <span className="comments-count-badge">({totalCommentsCount >= 1000 ? `${(totalCommentsCount / 1000).toFixed(1)}K` : totalCommentsCount})</span>
         </h3>
 
         <div className="comments-filter-pills">
-          <button
-            className={`comment-pill-btn ${sortBy === 'popular' ? 'active' : ''}`}
-            onClick={() => setSortBy('popular')}
-            type="button"
-          >
-            <IconTrending />
-            <span>Popular</span>
-          </button>
           <button
             className={`comment-pill-btn ${sortBy === 'newest' ? 'active' : ''}`}
             onClick={() => setSortBy('newest')}
             type="button"
           >
             <IconCalendar />
-            <span>Newest</span>
+            <span>Mới nhất</span>
+          </button>
+          <button
+            className={`comment-pill-btn ${sortBy === 'rating' ? 'active' : ''}`}
+            onClick={() => setSortBy('rating')}
+            type="button"
+          >
+            <IconTrending />
+            <span>Đánh giá cao</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Write Comment Input Box (Image 4) */}
+      {/* 2. Write Comment Input Box */}
       <div className="comment-compose-card">
         <div className="compose-user-avatar" style={{ background: '#d96c2c' }}>
           <span>{currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'B'}</span>
@@ -255,7 +142,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
         <form className="compose-input-container" onSubmit={handleSubmitComment}>
           <textarea
             className="compose-textarea"
-            placeholder="Write your comments here..."
+            placeholder="Viết cảm nhận của bạn về bộ phim này..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={2}
@@ -277,7 +164,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
               <span className="rating-label-mini">{newRating}/5 sao</span>
             </div>
 
-            {/* Circular Send Button (Image 4) */}
+            {/* Circular Send Button */}
             <button
               type="submit"
               className="btn-send-comment"
@@ -290,7 +177,7 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
         </form>
       </div>
 
-      {/* 3. Comments List (Image 4) */}
+      {/* 3. Comments List */}
       <div className="comments-feed-list">
         {sortedReviews.length === 0 ? (
           <div className="empty-comments-state">
@@ -317,102 +204,10 @@ export default function MovieReviewsSection({ movieId, movieTitle, initialReview
                       ))}
                     </div>
                   </div>
-
-                  <button className="btn-more-options" title="Tùy chọn">
-                    <IconMore />
-                  </button>
                 </div>
 
                 {/* Comment Text */}
                 <p className="comment-body-text">{rev.comment}</p>
-
-                {/* Action Footer: Like, Dislike, Reply */}
-                <div className="comment-actions-bar">
-                  <button
-                    className={`btn-action-metric ${rev.userLiked ? 'active-like' : ''}`}
-                    onClick={() => handleToggleLike(rev.id)}
-                    type="button"
-                    title="Hài lòng"
-                  >
-                    <IconThumbsUp active={rev.userLiked} />
-                    <span>{rev.likes}</span>
-                  </button>
-
-                  <button
-                    className={`btn-action-metric ${rev.userDisliked ? 'active-dislike' : ''}`}
-                    onClick={() => handleToggleDislike(rev.id)}
-                    type="button"
-                    title="Chưa hài lòng"
-                  >
-                    <IconThumbsDown active={rev.userDisliked} />
-                    <span>{rev.dislikes}</span>
-                  </button>
-
-                  <button
-                    className="btn-action-reply"
-                    onClick={() => setActiveReplyId(activeReplyId === rev.id ? null : rev.id)}
-                    type="button"
-                  >
-                    <IconReply />
-                    <span>Reply</span>
-                  </button>
-                </div>
-
-                {/* Inline Reply Input */}
-                {activeReplyId === rev.id && (
-                  <div className="inline-reply-box">
-                    <input
-                      type="text"
-                      className="inline-reply-input"
-                      placeholder={`Trả lời ${rev.author}...`}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSendReply(rev.id);
-                      }}
-                      autoFocus
-                    />
-                    <button
-                      className="btn-submit-inline-reply"
-                      onClick={() => handleSendReply(rev.id)}
-                      type="button"
-                    >
-                      Gửi
-                    </button>
-                  </div>
-                )}
-
-                {/* See Replies Collapsible (Image 4) */}
-                {rev.replies && rev.replies.length > 0 && (
-                  <div className="comment-replies-wrapper">
-                    <button
-                      className="btn-see-replies"
-                      onClick={() => toggleReplies(rev.id)}
-                      type="button"
-                    >
-                      <span>{expandedReplies[rev.id] ? '▲ Hide' : '▼ See'} {rev.replies.length} {rev.replies.length > 1 ? 'Replies' : 'Reply'}</span>
-                    </button>
-
-                    {expandedReplies[rev.id] && (
-                      <div className="nested-replies-list">
-                        {rev.replies.map((reply) => (
-                          <div key={reply.id} className="nested-reply-item">
-                            <div className="reply-avatar-mini" style={{ background: reply.avatarBg }}>
-                              <span>{reply.author.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <div className="reply-content-mini">
-                              <div className="reply-header-mini">
-                                <span className="reply-author-name">{reply.author}</span>
-                                <span className="reply-date">{reply.createdAt}</span>
-                              </div>
-                              <p className="reply-text">{reply.comment}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           ))

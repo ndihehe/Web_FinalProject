@@ -19,10 +19,6 @@ export default function AuthModal() {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
 
-  // Forgot password form state
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
-
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,18 +65,8 @@ export default function AuthModal() {
     }
   };
 
-  const handleForgotSubmit = (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setTimeout(() => {
-      setForgotSent(true);
-      setSubmitting(false);
-    }, 400);
-  };
-
   const switchMode = (newMode) => {
     setErrorMsg('');
-    setForgotSent(false);
     setAuthMode(newMode);
   };
 
@@ -159,15 +145,6 @@ export default function AuthModal() {
                   >
                     <FeatherIcon name={showLoginPassword ? 'eye-off' : 'eye'} size={18} />
                   </button>
-                </div>
-
-                <div className="forgot-password-row">
-                  <span
-                    className="forgot-link"
-                    onClick={() => switchMode('forgot')}
-                  >
-                    Forgot Password?
-                  </span>
                 </div>
               </div>
 
@@ -282,51 +259,6 @@ export default function AuthModal() {
           </>
         )}
 
-        {/* ===============================================================
-            MODE 3: FORGOT PASSWORD
-            =============================================================== */}
-        {mode === 'forgot' && (
-          <>
-            <h2 className="auth-title">Reset Password</h2>
-            <p className="auth-subtitle">
-              {forgotSent
-                ? 'If your email is in our system, recovery instructions have been sent.'
-                : 'Enter your registered email address to receive password reset instructions.'}
-            </p>
-
-            {!forgotSent ? (
-              <form onSubmit={handleForgotSubmit} className="auth-form">
-                <div className="form-group">
-                  <label className="auth-label">Email</label>
-                  <input
-                    type="email"
-                    className="auth-input-white"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="username@gmail.com"
-                    required
-                  />
-                </div>
-
-                <button type="submit" className="btn-sign-in" disabled={submitting}>
-                  {submitting ? 'Sending link...' : 'Send Reset Link'}
-                </button>
-              </form>
-            ) : (
-              <div className="auth-actions-done">
-                <button className="btn-sign-in" onClick={() => switchMode('login')}>
-                  Back to Sign in
-                </button>
-              </div>
-            )}
-
-            <div className="auth-switch-footer">
-              <span className="switch-link" onClick={() => switchMode('login')}>
-                <FeatherIcon name="arrow-left" size={14} /> Back to Login
-              </span>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

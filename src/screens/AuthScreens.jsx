@@ -139,15 +139,6 @@ export function LoginScreen({ onClose }) {
                 <FeatherIcon name={showPassword ? 'eye-off' : 'eye'} size={18} />
               </button>
             </div>
-
-            <div className="forgot-password-row">
-              <span
-                className="forgot-link"
-                onClick={() => navigate('/forgot-password')}
-              >
-                Forgot Password?
-              </span>
-            </div>
           </div>
 
           {/* 4. Sign in Pill Button */}

@@ -41,7 +41,7 @@ function AppContent() {
     } else if (path === '/register') {
       openAuthModal('register');
     } else if (path === '/forgot-password') {
-      openAuthModal('forgot');
+      openAuthModal('login');
     }
   }, [path]);
 

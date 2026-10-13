@@ -23,8 +23,6 @@ export default function UserBookingsScreen() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [refundBooking, setRefundBooking] = useState(null);
   const [refundReason, setRefundReason] = useState('Bận việc cá nhân');
   const [reviewBooking, setReviewBooking] = useState(null);
@@ -83,16 +81,6 @@ export default function UserBookingsScreen() {
   useEffect(() => {
     loadBookings();
   }, [selectedStatus]);
-
-  const handleOpenInvoice = async (bookingId) => {
-    try {
-      const invRes = await cinemaService.getBookingInvoice(bookingId);
-      setSelectedInvoice(invRes.data);
-      setIsInvoiceOpen(true);
-    } catch (e) {
-      alert(e.message || 'Hóa đơn chưa sẵn sàng');
-    }
-  };
 
   const handleConfirmRefund = async () => {
     if (!refundBooking) return;
@@ -278,6 +266,19 @@ export default function UserBookingsScreen() {
                           <span className="b-seat-chip">Vé tiêu chuẩn</span>
                         )}
                       </div>
+
+                      {Array.isArray(b.products || b.fnbItems) && (b.products || b.fnbItems).length > 0 && (
+                        <div className="b-seats-row" style={{ marginTop: '6px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <FeatherIcon name="coffee" size={13} /> Bắp nước & Combo:
+                          </span>
+                          {(b.products || b.fnbItems).map((p, idx) => (
+                            <span key={idx} className="b-seat-chip" style={{ background: 'rgba(217, 108, 44, 0.15)', borderColor: 'rgba(217, 108, 44, 0.4)', color: '#f97316' }}>
+                              {p.productName || p.name || 'Combo'} x{p.quantity || 1}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="b-total-box">
@@ -296,13 +297,7 @@ export default function UserBookingsScreen() {
                             navigate(`/ticket/${targetId}`);
                           }}
                         >
-                          <FeatherIcon name="tag" size={16} /> Xem Vé & Mã QR
-                        </button>
-                        <button
-                          className="btn-action-secondary"
-                          onClick={() => handleOpenInvoice(bookingId)}
-                        >
-                          <FeatherIcon name="file-text" size={16} /> Hóa Đơn Điện Tử
+                          <FeatherIcon name="tag" size={16} /> Xem Toàn Bộ Thông Tin Vé & QR
                         </button>
                         {b.eligibility && b.eligibility.canRefund && (
                           <button
@@ -338,56 +333,6 @@ export default function UserBookingsScreen() {
           </div>
         )}
       </div>
-
-      {/* MODAL XEM HÓA ĐƠN ĐIỆN TỬ */}
-      {isInvoiceOpen && selectedInvoice && (
-        <div className="modal-backdrop">
-          <div className="modal-box-orthogonal invoice-modal">
-            <div className="invoice-header">
-              <h3 className="spotlight-text">CHỨNG TỪ THANH TOÁN (HÓA ĐƠN)</h3>
-              <button className="btn-close-modal" onClick={() => setIsInvoiceOpen(false)}>
-                <FeatherIcon name="x" size={20} />
-              </button>
-            </div>
-
-            <div className="invoice-info-meta">
-              <div>Số hóa đơn: <strong>{selectedInvoice.number}</strong></div>
-              <div>Ngày xuất: <strong>{new Date(selectedInvoice.issuedAt).toLocaleString('vi-VN')}</strong></div>
-              <div>Khách hàng: <strong>{selectedInvoice.customerName}</strong></div>
-              <div>Trạng thái: <span className="status-badge-issued">{selectedInvoice.status}</span></div>
-            </div>
-
-            <table className="invoice-table">
-              <thead>
-                <tr>
-                  <th>Nội dung</th>
-                  <th>Số lượng</th>
-                  <th>Đơn giá</th>
-                  <th>Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedInvoice.lines.map((l, idx) => (
-                  <tr key={idx}>
-                    <td>{l.description}</td>
-                    <td>{l.quantity}</td>
-                    <td>{l.unitPrice.toLocaleString('vi-VN')} đ</td>
-                    <td>{l.lineTotal.toLocaleString('vi-VN')} đ</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="invoice-summary-rows">
-              <div className="inv-row"><span>Tạm tính:</span><span>{selectedInvoice.subtotal.toLocaleString('vi-VN')} đ</span></div>
-              {selectedInvoice.discountAmount > 0 && (
-                <div className="inv-row discount"><span>Giảm giá:</span><span>-{selectedInvoice.discountAmount.toLocaleString('vi-VN')} đ</span></div>
-              )}
-              <div className="inv-row total"><span>Tổng thanh toán:</span><span className="spotlight-text">{selectedInvoice.totalAmount.toLocaleString('vi-VN')} đ</span></div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL HOÀN TIỀN */}
       {refundBooking && (

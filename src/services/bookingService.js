@@ -425,7 +425,36 @@ export const bookingService = {
 
   async getBookingInvoice(id) {
     if (IS_REAL_API_MODE) {
-      return apiFetch('/booking/' + id + '/invoice');
+      try {
+        const detailRes = await this.getBookingDetail(id);
+        const b = detailRes?.data || {};
+        return {
+          code: 'SUCCESS',
+          data: {
+            id: `inv-${b.id || id}`,
+            number: `INV-${String(b.id || id).padStart(6, '0')}`,
+            issuedAt: b.createdAt || new Date().toISOString(),
+            customerName: b.customerName || 'Khách hàng',
+            status: 'ISSUED',
+            lines: (b.seats || []).map(s => ({
+              description: `Vé xem phim (${b.movieTitle || 'Phim'}) - Ghế ${s.label || s.seatId}`,
+              quantity: 1,
+              unitPrice: s.price || 0,
+              lineTotal: s.price || 0
+            })).concat((b.products || []).map(p => ({
+              description: p.productName || 'Bắp nước & Combo',
+              quantity: p.quantity || 1,
+              unitPrice: p.price || 0,
+              lineTotal: (p.price || 0) * (p.quantity || 1)
+            }))),
+            subtotal: b.totalAmount || 0,
+            discountAmount: 0,
+            totalAmount: b.totalAmount || 0
+          }
+        };
+      } catch (_) {
+        throw errorResponse('INVOICE_NOT_AVAILABLE', 'Hóa đơn chưa sẵn sàng hoặc đơn chưa thanh toán');
+      }
     }
     await delay();
     const state = getState();

@@ -32,6 +32,8 @@ export default function TicketDetailScreen() {
   const [alertMsg, setAlertMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [moviesMap, setMoviesMap] = useState({});
+  const [bookingTickets, setBookingTickets] = useState([]);
+  const [selectedTicketIdx, setSelectedTicketIdx] = useState(0);
 
   useEffect(() => {
     const fetchUser = () => {
@@ -118,13 +120,23 @@ export default function TicketDetailScreen() {
 
       if (tData) {
         setTicket(tData);
-        if (tData.bookingId) {
+        const bId = tData.bookingId || cleanBookingId;
+        if (bId) {
           try {
-            const bRes = await cinemaService.getBookingDetail(tData.bookingId);
+            const bRes = await cinemaService.getBookingDetail(bId);
             setBooking(bRes?.data);
           } catch (be) {
             console.warn('Không thể tải chi tiết booking:', be);
           }
+          try {
+            const bTickets = await cinemaService.getBookingTickets(bId);
+            const list = Array.isArray(bTickets?.data) ? bTickets.data : [];
+            if (list.length > 0) {
+              setBookingTickets(list);
+              const foundIdx = list.findIndex((t) => String(t.id) === String(tData.id));
+              setSelectedTicketIdx(foundIdx >= 0 ? foundIdx : 0);
+            }
+          } catch (_) {}
         }
       } else {
         setTicket(null);
@@ -215,6 +227,25 @@ export default function TicketDetailScreen() {
   const totalAmountDisplay = booking?.totalAmount || ticket?.totalAmount || ticket?.price;
   const bookingCodeDisplay = ticket?.bookingId || booking?.id || booking?.bookingId;
 
+  const allSeatLabels = [];
+  if (Array.isArray(booking?.seats) && booking.seats.length > 0) {
+    booking.seats.forEach((s) => {
+      const lbl = typeof s === 'string' ? s : (s.label || s.seatName || s.seatId);
+      if (lbl && !allSeatLabels.includes(lbl)) allSeatLabels.push(lbl);
+    });
+  }
+  if (Array.isArray(bookingTickets) && bookingTickets.length > 0) {
+    bookingTickets.forEach((t) => {
+      const lbl = t.seatLabel || t.seatName;
+      if (lbl && !allSeatLabels.includes(lbl)) allSeatLabels.push(lbl);
+    });
+  }
+  if (allSeatLabels.length === 0 && (ticket?.seatLabel || ticket?.seatName)) {
+    allSeatLabels.push(ticket.seatLabel || ticket.seatName);
+  }
+
+  const seatsDisplay = allSeatLabels.length > 0 ? allSeatLabels.join(', ') : (ticket?.seatLabel || ticket?.seatName || 'Ghế tiêu chuẩn');
+
   return (
     <div className="page-container ticket-screen">
       <div className="container">
@@ -235,6 +266,29 @@ export default function TicketDetailScreen() {
         )}
 
         <div className="ticket-center-wrapper">
+          {/* TAB CHỌN TỪNG VÉ NẾU ĐƠN CÓ NHIỀU GHẾ / VÉ */}
+          {bookingTickets.length > 1 && (
+            <div className="ticket-multi-selector">
+              <span className="multi-selector-label">Đơn hàng gồm {bookingTickets.length} vé (chọn vé để quét mã QR tương ứng):</span>
+              <div className="multi-selector-tabs">
+                {bookingTickets.map((tItem, idx) => (
+                  <button
+                    key={tItem.id || idx}
+                    type="button"
+                    className={`btn-ticket-tab ${idx === selectedTicketIdx ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedTicketIdx(idx);
+                      setTicket(tItem);
+                    }}
+                  >
+                    <FeatherIcon name="tag" size={13} />
+                    <span>Vé #{tItem.id} (Ghế {tItem.seatLabel || tItem.seatName})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* THẺ VÉ ĐIỆN TỬ RĂNG CƯA ĐẲNG CẤP */}
           <div className={`cinema-e-ticket ${isVoid ? 'ticket-void' : ''}`}>
             {/* PHẦN TRÁI VÉ: THÔNG TIN PHIM & SUẤT CHIẾU */}
@@ -289,9 +343,18 @@ export default function TicketDetailScreen() {
               </div>
 
               <div className="ticket-seat-highlight-box">
-                <span className="seat-box-label">VỊ TRÍ GHẾ NGỒI</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span className="seat-box-label">
+                    VỊ TRÍ GHẾ NGỒI {allSeatLabels.length > 1 ? `(${allSeatLabels.length} GHẾ ĐÃ ĐẶT)` : ''}
+                  </span>
+                  {bookingTickets.length > 1 && (
+                    <span style={{ fontSize: '12px', color: 'var(--orange-primary)', fontWeight: '600' }}>
+                      Đang xem mã QR vé ghế: {ticket?.seatLabel || ticket?.seatName}
+                    </span>
+                  )}
+                </div>
                 <span className="seat-box-value spotlight-text">
-                  {ticket.seatLabel || ticket.seatName || (Array.isArray(booking?.seats) && booking.seats.length > 0 ? booking.seats.map((s) => s.label || s.seatId).join(', ') : 'Ghế tiêu chuẩn')}
+                  {seatsDisplay}
                 </span>
               </div>
 

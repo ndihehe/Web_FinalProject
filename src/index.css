@@ -4278,6 +4278,48 @@ button, input, select, textarea, .card, .modal, .badge, .chip, .alert {
   gap: 6px;
 }
 
+.ticket-multi-selector {
+  margin-bottom: 16px;
+  background: #0f131d;
+  border: 1px solid #1e2638;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.multi-selector-label {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.multi-selector-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-ticket-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #141a27;
+  border: 1px solid #253046;
+  color: #cbd5e1;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-ticket-tab:hover {
+  border-color: var(--orange-primary);
+  color: #fff;
+}
+.btn-ticket-tab.active {
+  background: rgba(255, 122, 0, 0.15);
+  border-color: var(--orange-primary);
+  color: var(--orange-primary);
+}
+
 .ticket-perforation {
   width: 2px;
   border-left: 2px dashed #242f46;

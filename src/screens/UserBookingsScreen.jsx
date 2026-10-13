@@ -296,8 +296,7 @@ export default function UserBookingsScreen() {
                         <button
                           className="btn-action-primary"
                           onClick={() => {
-                            const targetId = (b.ticketIds && b.ticketIds.length > 0) ? b.ticketIds[0] : `booking-${bookingId}`;
-                            navigate(`/ticket/${targetId}`);
+                            navigate(`/ticket/booking-${bookingId}`);
                           }}
                         >
                           <FeatherIcon name="tag" size={16} /> Xem Toàn Bộ Thông Tin Vé & QR

@@ -200,67 +200,43 @@ function AppContent() {
     };
   }, [path]);
 
-  // Bộ chọn render màn hình theo URL router
   const renderScreen = () => {
-    // 1. Trang chủ (/)
     if (path === '/' || path === '') {
       return <HomeScreen />;
     }
-
-    // 2. Danh mục & Chi tiết phim (/movie, /movie/:id)
     if (path === '/movie') {
       return <MoviesScreen />;
     }
     if (segments[0] === 'movie' && segments[1]) {
       return <MovieDetailScreen />;
     }
-
-    // 3. Hệ thống & Chi tiết rạp (/cinema, /cinema/:id)
     if (path === '/cinema' || (segments[0] === 'cinema' && segments[1])) {
       return <CinemaDetailScreen />;
     }
-
-    // 4. Chọn ghế (/showtime/:id/seat)
     if (segments[0] === 'showtime' && segments[1] && segments[2] === 'seat') {
       return <SeatSelectionScreen />;
     }
-
-    // 5. Checkout đơn hàng (/booking/:id)
     if (segments[0] === 'booking' && segments[1]) {
       return <BookingCheckoutScreen />;
     }
-
-    // 6. Vé điện tử QR (/ticket/:id)
     if (segments[0] === 'ticket' && segments[1]) {
       return <TicketDetailScreen />;
     }
-
-    // 7. Ví Beta (/wallet, /user/wallet)
     if (path === '/wallet' || path === '/user/wallet') {
       return <WalletScreen />;
     }
-
-    // 8. Đơn vé cá nhân (/user/booking)
     if (path === '/user/booking') {
       return <UserBookingsScreen />;
     }
-
-    // 9. Kho voucher (/user/voucher)
     if (path === '/user/voucher') {
       return <UserVouchersScreen />;
     }
-
-    // 10. Hồ sơ cá nhân (/user)
     if (path === '/user') {
       return <UserProfileScreen />;
     }
-
-    // 11. Các trang xác thực (/login, /register, /forgot-password) - hiển thị popup trên nền trang chủ
     if (path === '/login' || path === '/register' || path === '/forgot-password') {
       return <HomeScreen />;
     }
-
-    // Mặc định về trang chủ
     return <HomeScreen />;
   };
 
